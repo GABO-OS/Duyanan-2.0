@@ -8,8 +8,8 @@ import quezonData from '../data/quezon_barangays.json';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-// Only letters, spaces, hyphens and apostrophes are valid in names
-const NAME_REGEX = /^[a-zA-ZÀ-ÖØ-öø-ÿ\s'\-]*$/;
+// Letters, spaces, hyphens, apostrophes, and dots (e.g. Ma., Jr., III, middle initials)
+const NAME_REGEX = /^[a-zA-ZÀ-ÖØ-öø-ÿ\s'\.\-]*$/;
 
 const Register = () => {
     const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '', phone: '', address: '' });
@@ -31,7 +31,7 @@ const Register = () => {
             if (!NAME_REGEX.test(value)) {
                 setNameErrors(prev => ({
                     ...prev,
-                    [name]: 'Only letters, spaces, hyphens and apostrophes are allowed.',
+                    [name]: 'Only letters, spaces, hyphens, apostrophes, and dots are allowed.',
                 }));
                 return; // prevent the invalid character from being typed
             } else {
@@ -46,9 +46,9 @@ const Register = () => {
         e.preventDefault();
         setFormError('');
 
-        // Guard: names must not contain digits or special characters
+        // Guard: names must not contain digits or invalid characters
         if (!NAME_REGEX.test(formData.firstName) || !NAME_REGEX.test(formData.lastName)) {
-            setFormError('First name and last name must contain letters only.');
+            setFormError('First name and last name must contain only letters, dots, hyphens or spaces.');
             return;
         }
         if (formData.firstName.trim().length < 2) {
@@ -76,17 +76,22 @@ const Register = () => {
             return;
         }
 
+        const cleanEmail = formData.email.trim().toLowerCase();
+        const cleanPhone = formData.phone.trim();
+        const cleanFirstName = formData.firstName.trim();
+        const cleanLastName = formData.lastName.trim();
+
         setIsLoading(true);
         try {
             const response = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    firstName: formData.firstName,
-                    lastName:  formData.lastName,
-                    email:     formData.email,
+                    firstName: cleanFirstName,
+                    lastName:  cleanLastName,
+                    email:     cleanEmail,
                     password:  formData.password,
-                    phone:     formData.phone,
+                    phone:     cleanPhone,
                     address:   `${selectedBarangay}, ${selectedMunicipality}, Quezon`,
                 }),
             });
@@ -94,7 +99,16 @@ const Register = () => {
             if (!response.ok) {
                 setFormError(data.error || 'Registration failed. Please try again.');
             } else {
-                navigate('/login');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Registration Successful! 🎉',
+                    text: 'Your account has been created. Please log in to continue.',
+                    confirmButtonColor: '#c2703a',
+                    timer: 3000,
+                    showConfirmButton: true
+                }).then(() => {
+                    navigate('/login');
+                });
             }
         } catch (err) {
             console.error("Registration fetch error:", err);
@@ -214,12 +228,11 @@ const Register = () => {
 
                 {/* Right — Form Panel */}
                 <div
-                    className="flex-grow-1 d-flex flex-column justify-content-center"
+                    className="flex-grow-1 d-flex flex-column justify-content-center p-3 p-sm-4 p-md-5"
                     style={{
                         background: 'rgba(255,255,255,0.10)',
                         backdropFilter: 'blur(28px) saturate(200%)',
                         WebkitBackdropFilter: 'blur(28px) saturate(200%)',
-                        padding: '44px 44px',
                     }}
                 >
                     <h2 className="fw-bold mb-1" style={{ color: '#fff', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
@@ -301,9 +314,9 @@ const Register = () => {
                                     required 
                                     style={{...glassInput, appearance: 'none'}}
                                 >
-                                    <option value="" disabled style={{ color: '#000' }}>Select Municipality</option>
+                                    <option value="" disabled style={{ color: '#000', backgroundColor: '#fff' }}>Select Municipality</option>
                                     {Object.keys(quezonData).map(mun => (
-                                        <option key={mun} value={mun} style={{ color: '#000' }}>{mun}</option>
+                                        <option key={mun} value={mun} style={{ color: '#000', backgroundColor: '#fff' }}>{mun}</option>
                                     ))}
                                 </select>
                                 <i className="bi bi-chevron-down position-absolute" style={{...iconPos('right'), pointerEvents: 'none'}}></i>
@@ -319,11 +332,11 @@ const Register = () => {
                                     disabled={!selectedMunicipality}
                                     style={{...glassInput, appearance: 'none', opacity: selectedMunicipality ? 1 : 0.6}}
                                 >
-                                    <option value="" disabled style={{ color: '#000' }}>
+                                    <option value="" disabled style={{ color: '#000', backgroundColor: '#fff' }}>
                                         {selectedMunicipality ? 'Select Barangay' : 'Choose Municipality First'}
                                     </option>
                                     {selectedMunicipality && quezonData[selectedMunicipality].map(brgy => (
-                                        <option key={brgy} value={brgy} style={{ color: '#000' }}>{brgy}</option>
+                                        <option key={brgy} value={brgy} style={{ color: '#000', backgroundColor: '#fff' }}>{brgy}</option>
                                     ))}
                                 </select>
                                 <i className="bi bi-chevron-down position-absolute" style={{...iconPos('right'), pointerEvents: 'none'}}></i>

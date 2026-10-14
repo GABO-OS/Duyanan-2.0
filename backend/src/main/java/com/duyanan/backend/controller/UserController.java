@@ -39,19 +39,29 @@ public class UserController {
     // ── Register ──────────────────────────────────────────
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
+        String rawEmail = body.get("email");
         String firstName = body.get("firstName");
         String lastName = body.get("lastName");
+        String password = body.get("password");
 
-        // Validate names: letters, spaces, hyphens and apostrophes only
-        String namePattern = "^[a-zA-ZÀ-ÖØ-öø-ÿ\\s'\\-]{2,}$";
+        if (rawEmail == null || rawEmail.trim().isEmpty() || !rawEmail.contains("@")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Valid email address is required."));
+        }
+        String email = rawEmail.trim().toLowerCase();
+
+        // Validate names: letters, spaces, hyphens, apostrophes, and dots (e.g. Ma., Jr., III)
+        String namePattern = "^[a-zA-ZÀ-ÖØ-öø-ÿ\\s'\\.\\-]{2,}$";
         if (firstName == null || !firstName.trim().matches(namePattern)) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", "First name must contain only letters (no numbers or special characters)."));
+                    .body(Map.of("error", "First name must contain only letters, dots, hyphens or spaces (at least 2 characters)."));
         }
         if (lastName == null || !lastName.trim().matches(namePattern)) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Last name must contain only letters (no numbers or special characters)."));
+                    .body(Map.of("error", "Last name must contain only letters, dots, hyphens or spaces (at least 2 characters)."));
+        }
+
+        if (password == null || password.length() < 8) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Password must be at least 8 characters."));
         }
 
         if (userRepository.existsByEmail(email)) {
@@ -62,14 +72,14 @@ public class UserController {
         user.setFirstName(firstName.trim());
         user.setLastName(lastName.trim());
         user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(body.get("password"))); // BCrypt hash
+        user.setPassword(passwordEncoder.encode(password)); // BCrypt hash
         user.setRole("CUSTOMER");
         
-        if (body.containsKey("phone")) {
-            user.setPhone(body.get("phone"));
+        if (body.containsKey("phone") && body.get("phone") != null) {
+            user.setPhone(body.get("phone").trim());
         }
-        if (body.containsKey("address")) {
-            user.setAddress(body.get("address"));
+        if (body.containsKey("address") && body.get("address") != null) {
+            user.setAddress(body.get("address").trim());
         }
 
         userRepository.save(user);
@@ -79,8 +89,13 @@ public class UserController {
     // ── Login ─────────────────────────────────────────────
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
+        String rawEmail = body.get("email");
         String password = body.get("password");
+
+        if (rawEmail == null || password == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Email and password are required."));
+        }
+        String email = rawEmail.trim().toLowerCase();
 
         java.util.Optional<User> userOpt = userRepository.findByEmail(email);
         boolean success = userOpt.map(u -> passwordEncoder.matches(password, u.getPassword())).orElse(false);
