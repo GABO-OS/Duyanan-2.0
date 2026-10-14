@@ -3,7 +3,6 @@ package com.duyanan.backend.controller;
 import com.duyanan.backend.model.Event;
 import com.duyanan.backend.repository.EventRepository;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
