@@ -10,7 +10,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'bootstrap-vendor': ['bootstrap', 'bootstrap-icons'],
+          'bootstrap-vendor': ['bootstrap'],
           'sweetalert2-vendor': ['sweetalert2'],
         },
       },
