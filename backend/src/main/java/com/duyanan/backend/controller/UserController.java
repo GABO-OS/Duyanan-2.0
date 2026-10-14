@@ -2,28 +2,38 @@ package com.duyanan.backend.controller;
 
 import com.duyanan.backend.model.*;
 import com.duyanan.backend.repository.*;
+import com.duyanan.backend.service.EmailService;
 import com.duyanan.backend.util.*;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
-import java.security.SecureRandom;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
 public class UserController {
 
     private final UserRepository userRepository;
+    private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final EmailService emailService;
 
-    public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+    public UserController(UserRepository userRepository,
+                          PasswordResetTokenRepository tokenRepository,
+                          PasswordEncoder passwordEncoder,
+                          JwtUtil jwtUtil,
+                          EmailService emailService) {
         this.userRepository = userRepository;
+        this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.emailService = emailService;
     }
 
     // ── Register ──────────────────────────────────────────
@@ -202,8 +212,9 @@ public class UserController {
         }
     }
 
-    // ── Forgot Password ───────────────────────────────────
+    // ── Forgot Password (sends email with reset link) ────
     @PostMapping("/forgot-password")
+    @Transactional
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
         String email = body.get("email");
         if (email == null || email.isBlank()) {
@@ -212,32 +223,70 @@ public class UserController {
 
         var userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "No account found with that email."));
+            // Still return success to not reveal if the email exists
+            return ResponseEntity.ok(Map.of(
+                "message", "If an account with that email exists, a password reset link has been sent."
+            ));
         }
 
         User user = userOpt.get();
 
-        // Generate a random 10-character password
-        String newPassword = generateRandomPassword(10);
+        // Delete any existing reset tokens for this user
+        tokenRepository.deleteByUser(user);
 
-        // Hash and save
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
+        // Generate a new token
+        String resetToken = UUID.randomUUID().toString();
+        PasswordResetToken prt = new PasswordResetToken(resetToken, user);
+        tokenRepository.save(prt);
+
+        // Send the email
+        try {
+            emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of(
+                "error", "Failed to send reset email. Please try again later."
+            ));
+        }
 
         return ResponseEntity.ok(Map.of(
-            "message", "Your new password has been generated.",
-            "newPassword", newPassword
+            "message", "A password reset link has been sent to your email address."
         ));
     }
 
-    // ── Helper: generate random password ──────────────────
-    private String generateRandomPassword(int length) {
-        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$";
-        SecureRandom random = new SecureRandom();
-        StringBuilder sb = new StringBuilder(length);
-        for (int i = 0; i < length; i++) {
-            sb.append(chars.charAt(random.nextInt(chars.length())));
+    // ── Reset Password (validates token & sets new password) ──
+    @PostMapping("/reset-password")
+    @Transactional
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        String token = body.get("token");
+        String newPassword = body.get("newPassword");
+
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Reset token is required."));
         }
-        return sb.toString();
+        if (newPassword == null || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Password must be at least 6 characters."));
+        }
+
+        var tokenOpt = tokenRepository.findByToken(token);
+        if (tokenOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid or expired reset link. Please request a new one."));
+        }
+
+        PasswordResetToken resetToken = tokenOpt.get();
+
+        if (resetToken.isExpired()) {
+            tokenRepository.delete(resetToken);
+            return ResponseEntity.badRequest().body(Map.of("error", "This reset link has expired. Please request a new one."));
+        }
+
+        // Update the user's password
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Delete the used token
+        tokenRepository.delete(resetToken);
+
+        return ResponseEntity.ok(Map.of("message", "Your password has been reset successfully! You can now log in with your new password."));
     }
 }

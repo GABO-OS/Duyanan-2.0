@@ -1,11 +1,14 @@
 package com.duyanan.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "reservations")
@@ -19,6 +22,10 @@ public class Reservation {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @OneToMany(mappedBy = "reservation", fetch = FetchType.EAGER)
+    @JsonIgnoreProperties({"reservation", "user"})
+    private List<Order> orders = new ArrayList<>();
 
     @Column(nullable = false)
     private String guestName;
@@ -48,6 +55,9 @@ public class Reservation {
 
     @Column(name = "cancellation_reason")
     private String cancellationReason;
+
+    @Column(name = "pre_order_summary", columnDefinition = "TEXT")
+    private String preOrderSummary;
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

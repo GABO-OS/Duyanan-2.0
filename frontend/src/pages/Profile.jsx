@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import Swal from 'sweetalert2';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
@@ -24,6 +25,8 @@ const formatTime12Hour = (timeStr) => {
 const Profile = () => {
     const [activeTab, setActiveTab] = useState('profile');
     const { user, login } = useAuth(); // We might need to update auth context if email/name changes
+    const { setReservationId } = useCart();
+    const navigate = useNavigate();
     
     const location = useLocation();
 
@@ -333,6 +336,82 @@ const Profile = () => {
         }
     };
 
+    const handleCancelOrder = async (orderId) => {
+        const { value: reason, isConfirmed } = await Swal.fire({
+            title: 'Cancel Order',
+            html: `
+                <p style="color:#666; font-size:0.92rem; margin-bottom:12px;">
+                    Please tell us why you want to cancel this order.
+                </p>
+                <textarea
+                    id="cancel-reason-input"
+                    class="swal2-textarea"
+                    placeholder="e.g. Changed my mind, ordered wrong item, etc."
+                    rows="3"
+                    style="font-size:0.9rem; resize:none;"
+                ></textarea>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="bi bi-x-circle me-1"></i> Yes, Cancel Order',
+            cancelButtonText: 'Keep Order',
+            focusConfirm: false,
+            preConfirm: () => {
+                const val = document.getElementById('cancel-reason-input')?.value?.trim();
+                if (!val) {
+                    Swal.showValidationMessage('⚠️ A cancellation reason is required before proceeding.');
+                    return false;
+                }
+                return val;
+            }
+        });
+
+        if (isConfirmed && reason) {
+            try {
+                const response = await fetch(`${API_URL}/api/orders/${orderId}/cancel`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${user.token}`
+                    },
+                    body: JSON.stringify({
+                        cancellationReason: reason
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Order Cancelled',
+                        text: 'Your order has been successfully cancelled.',
+                        confirmButtonColor: 'var(--primary-brown)',
+                        timer: 3000
+                    });
+                    fetchOrders();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Cancellation Failed',
+                        text: data.error || 'Something went wrong. Please try again.',
+                        confirmButtonColor: 'var(--primary-brown)'
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Connection Error',
+                    text: 'Could not connect to the server. Please check your internet.',
+                    confirmButtonColor: 'var(--primary-brown)'
+                });
+            }
+        }
+    };
+
+
     const handleOpenFeedbackModal = (order) => {
         setSelectedOrderForFeedback(order);
         setFeedbackRating(5);
@@ -527,7 +606,14 @@ const Profile = () => {
                                     <div key={order.id} className="card border-0 bg-white" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.04)' }}>
                                         <div className="card-header bg-transparent border-bottom-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
                                             <div>
-                                                <p className="text-muted small mb-0"><i className="bi bi-calendar3 me-1"></i> {dateStr}</p>
+                                                <div className="text-muted small mb-0 d-flex align-items-center gap-2 flex-wrap">
+                                                    <span><i className="bi bi-calendar3 me-1"></i> {dateStr}</span>
+                                                    {(order.orderType === 'DINE_IN' || order.reservation) && (
+                                                        <span className="badge bg-warning text-dark border">
+                                                            🍽️ Dine-In Pre-Order {order.reservation?.id ? `(Res #${order.reservation.id})` : ''}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="text-end">
                                                 <h5 className="fw-bold mb-0" style={{ color: 'var(--text-dark)' }}>₱{order.totalAmount.toFixed(2)}</h5>
@@ -606,6 +692,32 @@ const Profile = () => {
                                                     )}
                                                 </div>
                                             )}
+
+                                            {/* ── Cancel Order Button (PENDING only) ── */}
+                                            {order.status === 'PENDING' && (
+                                                <div className="mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
+                                                    <span className="small text-muted">
+                                                        <i className="bi bi-info-circle me-1"></i>
+                                                        You can cancel this order while it's still pending.
+                                                    </span>
+                                                    <button
+                                                        onClick={() => handleCancelOrder(order.id)}
+                                                        className="btn btn-sm px-3 py-2 fw-bold"
+                                                        style={{ backgroundColor: '#fdf0f0', color: '#e74c3c', border: '1.5px solid #f5c6cb', borderRadius: '8px', fontSize: '0.82rem' }}
+                                                    >
+                                                        <i className="bi bi-x-circle me-1"></i> Cancel Order
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* ── Non-cancellable notice (PREPARING / READY) ── */}
+                                            {(order.status === 'PREPARING' || order.status === 'READY') && (
+                                                <div className="mt-3 pt-3 border-top d-flex align-items-center gap-2" style={{ fontSize: '0.82rem', color: '#856404' }}>
+                                                    <i className="bi bi-lock-fill" style={{ flexShrink: 0 }}></i>
+                                                    <span>Your order is already being <strong>prepared</strong> and can no longer be cancelled.</span>
+                                                </div>
+                                            )}
+
                                         </div>
                                     </div>
                                 );
@@ -791,6 +903,36 @@ const Profile = () => {
                                                  </div>
                                              </div>
 
+                                             {/* Linked Pre-orders */}
+                                             {(() => {
+                                                 const linkedOrders = (res.orders && res.orders.length > 0)
+                                                     ? res.orders
+                                                     : myOrders.filter(o => o.reservation && String(o.reservation.id) === String(res.id));
+                                                 if (!linkedOrders || linkedOrders.length === 0) return null;
+                                                 return (
+                                                     <div className="mt-3">
+                                                         {linkedOrders.map(order => (
+                                                             <div key={order.id} className="p-3 rounded-3 mb-2" style={{ backgroundColor: 'rgba(211, 84, 0, 0.04)', border: '1px solid rgba(211, 84, 0, 0.15)', borderRadius: '10px' }}>
+                                                                 <div className="d-flex justify-content-between align-items-center mb-2">
+                                                                     <span className="fw-bold small" style={{ color: 'var(--primary-brown)' }}>
+                                                                         🍽️ Pre-Ordered Food (Order #{order.id})
+                                                                     </span>
+                                                                     <span className="badge bg-white text-dark border fw-bold">
+                                                                         ₱{order.totalAmount ? order.totalAmount.toFixed(2) : '0.00'}
+                                                                     </span>
+                                                                 </div>
+                                                                 {order.items?.map((item, idx) => (
+                                                                     <div key={idx} className="d-flex justify-content-between small text-muted">
+                                                                         <span>{item.quantity}x {item.product?.name || 'Item'} {item.variant ? `(${item.variant})` : ''}</span>
+                                                                         <span>₱{item.subtotal ? item.subtotal.toFixed(2) : '0.00'}</span>
+                                                                     </div>
+                                                                 ))}
+                                                             </div>
+                                                         ))}
+                                                     </div>
+                                                 );
+                                             })()}
+
                                              {res.status === 'CANCELLED' && res.cancellationReason && (
                                                  <div className="mt-3 p-3 rounded-3 d-flex align-items-start gap-2" style={{ backgroundColor: 'rgba(231, 76, 60, 0.06)', border: '1.5px solid rgba(231, 76, 60, 0.15)', borderLeft: '4px solid #e74c3c', borderRadius: '10px' }}>
                                                      <i className="bi bi-info-circle-fill" style={{ color: '#e74c3c', fontSize: '1rem', marginTop: '1px', flexShrink: 0 }}></i>
@@ -801,24 +943,54 @@ const Profile = () => {
                                                  </div>
                                              )}
  
-                                             {res.status === 'PENDING' && (
-                                                 <div className="d-flex justify-content-end mt-3 gap-2">
-                                                     <button 
-                                                         onClick={() => handleCancelReservation(res.id)} 
-                                                         className="btn btn-sm px-3 py-2 fw-bold shadow-sm" 
-                                                         style={{ fontSize: '0.85rem', backgroundColor: '#fdf0f0', color: '#e74c3c', border: '1.5px solid #f5c6cb', borderRadius: '8px' }}
-                                                     >
-                                                         <i className="bi bi-x-circle me-1"></i> Cancel
-                                                     </button>
-                                                     <button 
-                                                         onClick={() => handleOpenEditReservation(res)} 
-                                                         className="btn btn-sm btn-edit-reservation text-white px-3 py-2 fw-bold shadow-sm" 
-                                                         style={{ fontSize: '0.85rem' }}
-                                                     >
-                                                         <i className="bi bi-pencil-square me-1"></i> Edit Details
-                                                     </button>
-                                                 </div>
-                                             )}
+                                             <div className="d-flex justify-content-between align-items-center mt-3 gap-2 flex-wrap">
+                                                <div>
+                                                    {res.status === 'PENDING' ? (
+                                                        <button
+                                                            onClick={() => {
+                                                                setReservationId(res.id.toString());
+                                                                navigate('/menu');
+                                                            }}
+                                                            className="btn btn-sm text-white fw-bold shadow-sm"
+                                                            style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '8px', fontSize: '0.82rem' }}
+                                                        >
+                                                            <i className="bi bi-cart-plus me-1"></i> Pre-Order Food
+                                                        </button>
+                                                    ) : res.status === 'CONFIRMED' ? (
+                                                        <span 
+                                                            className="badge px-2.5 py-1.5 fw-semibold" 
+                                                            style={{ 
+                                                                backgroundColor: '#f8f9fa', 
+                                                                color: '#6c757d', 
+                                                                border: '1px solid #dee2e6', 
+                                                                borderRadius: '8px', 
+                                                                fontSize: '0.78rem' 
+                                                            }}
+                                                            title="Pre-ordering is no longer available once the reservation is confirmed by the admin"
+                                                        >
+                                                            <i className="bi bi-lock-fill me-1 text-muted"></i> Pre-Order Unavailable (Confirmed)
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                                 {res.status === 'PENDING' && (
+                                                     <div className="d-flex gap-2">
+                                                         <button 
+                                                             onClick={() => handleCancelReservation(res.id)} 
+                                                             className="btn btn-sm px-3 py-2 fw-bold shadow-sm" 
+                                                             style={{ fontSize: '0.85rem', backgroundColor: '#fdf0f0', color: '#e74c3c', border: '1.5px solid #f5c6cb', borderRadius: '8px' }}
+                                                         >
+                                                             <i className="bi bi-x-circle me-1"></i> Cancel
+                                                         </button>
+                                                         <button 
+                                                             onClick={() => handleOpenEditReservation(res)} 
+                                                             className="btn btn-sm btn-edit-reservation text-white px-3 py-2 fw-bold shadow-sm" 
+                                                             style={{ fontSize: '0.85rem' }}
+                                                         >
+                                                             <i className="bi bi-pencil-square me-1"></i> Edit Details
+                                                         </button>
+                                                     </div>
+                                                 )}
+                                             </div>
                                          </div>
                                      </div>
                                 );

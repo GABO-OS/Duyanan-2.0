@@ -10,9 +10,21 @@ export const CartProvider = ({ children }) => {
         return savedCart ? JSON.parse(savedCart) : [];
     });
 
+    const [reservationId, setReservationId] = useState(() => {
+        return localStorage.getItem('duyanan_reservation_id') || null;
+    });
+
     useEffect(() => {
         localStorage.setItem('duyanan_cart', JSON.stringify(cart));
     }, [cart]);
+
+    useEffect(() => {
+        if (reservationId) {
+            localStorage.setItem('duyanan_reservation_id', reservationId);
+        } else {
+            localStorage.removeItem('duyanan_reservation_id');
+        }
+    }, [reservationId]);
 
     const addToCart = (product, variant = null, variantPrice = null) => {
         setCart((prevCart) => {
@@ -48,12 +60,27 @@ export const CartProvider = ({ children }) => {
 
     const clearCart = () => {
         setCart([]);
+        setReservationId(null);
+    };
+
+    const clearReservationLink = () => {
+        setReservationId(null);
     };
 
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
     return (
-        <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, total }}>
+        <CartContext.Provider value={{ 
+            cart, 
+            addToCart, 
+            removeFromCart, 
+            updateQuantity, 
+            clearCart, 
+            total,
+            reservationId,
+            setReservationId,
+            clearReservationLink
+        }}>
             {children}
         </CartContext.Provider>
     );

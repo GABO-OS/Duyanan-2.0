@@ -19,13 +19,16 @@ public class ReservationController {
 
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
     private final JwtUtil jwtUtil;
 
     public ReservationController(ReservationRepository reservationRepository,
                                   UserRepository userRepository,
+                                  OrderRepository orderRepository,
                                   JwtUtil jwtUtil) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
+        this.orderRepository = orderRepository;
         this.jwtUtil = jwtUtil;
     }
 
@@ -228,5 +231,12 @@ public class ReservationController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    // ── Get orders for a specific reservation ─────────────────
+    @GetMapping("/{id}/orders")
+    public ResponseEntity<?> getOrdersByReservation(@PathVariable Long id) {
+        List<Order> orders = orderRepository.findByReservationId(id);
+        return ResponseEntity.ok(orders);
     }
 }

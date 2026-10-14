@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import Swal from 'sweetalert2';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -16,6 +17,7 @@ const bgImages = [bg1, bg2, bg3];
 const Reservations = () => {
     const navigate = useNavigate();
     const [currentBg, setCurrentBg] = useState(0);
+    const { setReservationId } = useCart();
     const [formData, setFormData] = useState({
         seatingType: '',
         date: '',
@@ -88,15 +90,23 @@ const Reservations = () => {
             const data = await response.json();
 
             if (response.ok) {
-                await Swal.fire({
+                const result = await Swal.fire({
                     icon: 'success',
-                    title: 'Reservation Confirmed!',
-                    text: 'Your table has been successfully booked. Redirecting to home...',
-                    confirmButtonColor: 'var(--primary-brown)',
-                    timer: 3000,
-                    showConfirmButton: false
+                    title: 'Reservation Confirmed! 🎉',
+                    text: 'Your table has been successfully booked! Would you like to browse the menu and pre-order food for your visit?',
+                    showCancelButton: true,
+                    confirmButtonColor: 'var(--accent-orange)',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '🍽️ Yes, Browse Menu',
+                    cancelButtonText: 'No, Thanks'
                 });
-                navigate('/');
+
+                if (result.isConfirmed && data.reservationId) {
+                    setReservationId(data.reservationId.toString());
+                    navigate('/menu');
+                } else {
+                    navigate('/');
+                }
             } else {
                 Swal.fire({
                     icon: 'error',

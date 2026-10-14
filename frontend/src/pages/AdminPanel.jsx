@@ -449,9 +449,9 @@ const AdminPanel = () => {
                     toast: true,
                     position: 'top-end',
                     icon: 'success',
-                    title: 'Status Updated',
+                    title: (type === 'reservations' && status === 'CONFIRMED') ? 'Reservation Confirmed (Pre-order closed)' : 'Status Updated',
                     showConfirmButton: false,
-                    timer: 2000
+                    timer: 2500
                 });
                 fetchData();
             }
@@ -467,6 +467,7 @@ const AdminPanel = () => {
     const completedOrders = orders.filter(o => o.status === 'COMPLETED').length;
     const pendingRes = reservations.filter(r => r.status === 'PENDING').length;
     const confirmedRes = reservations.filter(r => r.status === 'CONFIRMED').length;
+    const completedRes = reservations.filter(r => r.status === 'COMPLETED').length;
     const cancelledRes = reservations.filter(r => r.status === 'CANCELLED').length;
 
     // ── Analytics & Forecasting Processors (Live Data) ──
@@ -1044,7 +1045,15 @@ const AdminPanel = () => {
                                                         <td className="px-4 text-start">
                                                             <div className="fw-bold text-dark">{o.user?.firstName} {o.user?.lastName}</div>
                                                             <div className="small text-muted" style={{ lineHeight: '1.2' }}><i className="bi bi-telephone-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.phone || 'N/A'}</div>
-                                                            <div className="small text-muted text-truncate" style={{ maxWidth: '200px', lineHeight: '1.2' }} title={o.user?.address || 'N/A'}><i className="bi bi-geo-alt-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.address || 'N/A'}</div>
+                                                            {(o.orderType === 'DINE_IN' || o.reservation) ? (
+                                                                <div className="mt-1">
+                                                                    <span className="badge bg-warning text-dark border" style={{ fontSize: '0.72rem' }}>
+                                                                        🍽️ Dine-In Pre-Order {o.reservation?.id ? `(Res #${o.reservation.id})` : ''}
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="small text-muted text-truncate" style={{ maxWidth: '200px', lineHeight: '1.2' }} title={o.user?.address || 'N/A'}><i className="bi bi-geo-alt-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.address || 'N/A'}</div>
+                                                            )}
                                                         </td>
                                                         <td className="px-4 text-center">
                                                             <div className="bg-light p-2 rounded mx-auto text-start" style={{ fontSize: '0.8rem', width: 'max-content' }}>
@@ -1091,9 +1100,10 @@ const AdminPanel = () => {
                                 <div className="fade-in">
                                     <h3 className="fw-bold mb-4" style={{ color: 'var(--primary-brown)' }}>Reservations Management</h3>
                                     <div className="row g-4 mb-5">
-                                        <div className="col-md-4"><StatBox title="Pending" value={pendingRes} /></div>
-                                        <div className="col-md-4"><StatBox title="Confirmed" value={confirmedRes} /></div>
-                                        <div className="col-md-4"><StatBox title="Cancelled" value={cancelledRes} /></div>
+                                        <div className="col-md-3"><StatBox title="Pending" value={pendingRes} /></div>
+                                        <div className="col-md-3"><StatBox title="Confirmed" value={confirmedRes} /></div>
+                                        <div className="col-md-3"><StatBox title="Completed" value={completedRes} /></div>
+                                        <div className="col-md-3"><StatBox title="Cancelled" value={cancelledRes} /></div>
                                     </div>
 
                                     <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
@@ -1114,7 +1124,23 @@ const AdminPanel = () => {
                                                 {reservations.map(r => (
                                                     <tr key={r.id}>
                                                         <td className="px-4 fw-bold text-center">#{r.id}</td>
-                                                        <td className="px-4 text-center">{r.guestName}</td>
+                                                        <td className="px-4 text-center">
+                                                            <div className="fw-bold text-dark">{r.guestName}</div>
+                                                            {(() => {
+                                                                const linked = (r.orders && r.orders.length > 0) 
+                                                                    ? r.orders 
+                                                                    : orders.filter(o => o.reservation && String(o.reservation.id) === String(r.id));
+                                                                if (!linked || linked.length === 0) return null;
+                                                                const totalPreOrder = linked.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+                                                                return (
+                                                                    <div className="mt-1">
+                                                                        <span className="badge bg-warning text-dark border" style={{ fontSize: '0.72rem' }} title={linked.map(o => o.items?.map(i => `${i.quantity}x ${i.product?.name}`).join(', ')).join(' | ')}>
+                                                                            🍽️ Pre-Order: ₱{totalPreOrder.toFixed(2)}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                        </td>
                                                         <td className="px-4 text-center">{r.reservationDate} <span className="text-muted small">{formatTime12Hour(r.reservationTime)}</span></td>
                                                         <td className="px-4 text-center">{r.numberOfGuests}</td>
                                                         <td className="px-4 text-center">
@@ -1140,9 +1166,19 @@ const AdminPanel = () => {
                                                             </span>
                                                         </td>
                                                         <td className="px-4 text-center">
-                                                            <span className={`badge rounded-pill ${r.status === 'PENDING' ? 'bg-warning text-dark' : r.status === 'CONFIRMED' ? 'bg-success' : 'bg-danger'}`}>
+                                                            <span className={`badge rounded-pill ${
+                                                                r.status === 'PENDING' ? 'bg-warning text-dark' : 
+                                                                r.status === 'CONFIRMED' ? 'bg-success' : 
+                                                                r.status === 'COMPLETED' ? 'bg-info text-dark' : 
+                                                                'bg-danger'
+                                                            }`}>
                                                                 {r.status}
                                                             </span>
+                                                            {r.status === 'CONFIRMED' && (
+                                                                <div className="mt-1 text-muted" style={{ fontSize: '0.72rem' }}>
+                                                                    <i className="bi bi-lock-fill me-1"></i>Pre-order closed
+                                                                </div>
+                                                            )}
                                                             {r.status === 'CANCELLED' && r.cancellationReason && (
                                                                 <div className="mt-1" style={{ fontSize: '0.72rem', color: '#d33', fontStyle: 'italic', maxWidth: '180px', margin: '4px auto 0' }}>
                                                                     <i className="bi bi-info-circle me-1"></i>{r.cancellationReason}
@@ -1153,6 +1189,7 @@ const AdminPanel = () => {
                                                             <select className="form-select form-select-sm d-inline-block w-auto" value={r.status} onChange={(e) => handleUpdateStatus('reservations', r.id, e.target.value)}>
                                                                 <option value="PENDING">Pending</option>
                                                                 <option value="CONFIRMED">Confirm</option>
+                                                                <option value="COMPLETED">Completed</option>
                                                                 <option value="CANCELLED">Cancel</option>
                                                             </select>
                                                         </td>

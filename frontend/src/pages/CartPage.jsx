@@ -100,6 +100,20 @@ const styles = `
     .price-pop { animation: pricePop 0.3s ease; }
     @keyframes pricePop { 0% { transform: scale(1); } 50% { transform: scale(1.12); } 100% { transform: scale(1); } }
 
+    /* Checkbox styles */
+    .cart-checkbox { width: 20px; height: 20px; accent-color: var(--accent-orange); cursor: pointer; flex-shrink: 0;
+        border-radius: 4px; margin-top: 2px; transition: transform 0.15s ease; }
+    .cart-checkbox:hover { transform: scale(1.15); }
+    .cart-checkbox:checked { animation: checkPop 0.25s ease; }
+    @keyframes checkPop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    .cart-item-card.unselected { opacity: 0.55; }
+    .cart-item-card.unselected:hover { opacity: 0.75; }
+    .select-all-bar { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: #fdfbf9;
+        border: 1.5px solid #f0ece8; border-radius: 12px; margin-bottom: 14px; }
+    .select-all-bar label { font-size: 0.85rem; font-weight: 600; color: var(--primary-brown); cursor: pointer; user-select: none; margin: 0; }
+    .selected-count-badge { font-size: 0.75rem; font-weight: 700; color: #fff; background: var(--accent-orange);
+        padding: 2px 8px; border-radius: 20px; margin-left: auto; }
+
     /* Responsive */
     @media (max-width: 767px) {
         .cart-item-img { width: 56px; height: 56px; }
@@ -121,6 +135,18 @@ const styles = `
     .payment-option-card.selected { border-color: var(--accent-orange); background: rgba(211, 84, 0, 0.03); box-shadow: 0 2px 8px rgba(211,84,0,0.08); }
     .payment-option-card i { font-size: 1.4rem; color: var(--accent-orange); display: block; margin-bottom: 4px; }
     .payment-option-card span { font-size: 0.88rem; font-weight: 600; color: var(--primary-brown); }
+
+    /* Fulfillment (Delivery / Pick-Up) toggle */
+    .fulfillment-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+    .fulfillment-option-card { border: 1.5px solid #e8e0d8; border-radius: 14px; padding: 18px 14px; text-align: center; cursor: pointer; background: #fdfbf9; transition: all 0.25s; }
+    .fulfillment-option-card.selected { border-color: var(--accent-orange); background: rgba(211, 84, 0, 0.04); box-shadow: 0 3px 14px rgba(211,84,0,0.12); }
+    .fulfillment-option-card.disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+    .fulfillment-option-card i { font-size: 1.8rem; color: var(--accent-orange); display: block; margin-bottom: 6px; }
+    .fulfillment-option-card .fc-title { font-size: 0.9rem; font-weight: 700; color: var(--primary-brown); display: block; }
+    .fulfillment-option-card .fc-sub { font-size: 0.72rem; color: #aaa; display: block; margin-top: 2px; }
+    .delivery-area-notice { border-radius: 12px; padding: 12px 16px; font-size: 0.82rem; display: flex; align-items: flex-start; gap: 10px; margin-top: 10px; line-height: 1.5; }
+    .delivery-area-notice.ineligible { background: #fff8f0; border: 1.5px solid #fde4c2; color: #a04000; }
+    .delivery-area-notice.eligible { background: #f0fff6; border: 1.5px solid #b7e4c7; color: #1a7a3e; }
 
     /* Success Card */
     .success-card { background: #fff; border-radius: 24px; padding: 40px; border: 1px solid #f0ece8; box-shadow: 0 4px 24px rgba(0,0,0,0.06); text-align: center; max-width: 600px; margin: 0 auto; animation: successFadeUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -168,7 +194,7 @@ const formatDescription = (desc) => {
 };
 
 const CartPage = () => {
-    const { cart, addToCart, removeFromCart, updateQuantity, clearCart } = useCart();
+    const { cart, addToCart, removeFromCart, updateQuantity, clearCart, reservationId, clearReservationLink } = useCart();
     const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -182,9 +208,83 @@ const CartPage = () => {
     });
     const [orderResult, setOrderResult] = useState(null);
     const [loadingProfile, setLoadingProfile] = useState(false);
+    const [fulfillmentMethod, setFulfillmentMethod] = useState('DELIVERY'); // 'DELIVERY' or 'PICKUP'
+    const [isEligibleForDelivery, setIsEligibleForDelivery] = useState(false);
 
-    const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    // ── Item selection state (checkboxes) ──
+    const [selectedItems, setSelectedItems] = useState(() => {
+        // Default: all items selected
+        return new Set(cart.map(item => item.cartItemId));
+    });
+
+    // Keep selectedItems in sync when cart changes (items added/removed externally)
+    React.useEffect(() => {
+        setSelectedItems(prev => {
+            const cartIds = new Set(cart.map(item => item.cartItemId));
+            const updated = new Set();
+            // Keep existing selections that are still in cart
+            for (const id of prev) {
+                if (cartIds.has(id)) updated.add(id);
+            }
+            // Auto-select newly added items
+            for (const id of cartIds) {
+                if (!prev.has(id) && prev.size > 0) updated.add(id);
+                else if (prev.size === 0) updated.add(id);
+            }
+            return updated;
+        });
+    }, [cart]);
+
+    const toggleItem = (cartItemId) => {
+        setSelectedItems(prev => {
+            const next = new Set(prev);
+            if (next.has(cartItemId)) next.delete(cartItemId);
+            else next.add(cartItemId);
+            return next;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedItems.size === cart.length) {
+            setSelectedItems(new Set());
+        } else {
+            setSelectedItems(new Set(cart.map(item => item.cartItemId)));
+        }
+    };
+
+    const isAllSelected = cart.length > 0 && selectedItems.size === cart.length;
+    const selectedCart = cart.filter(item => selectedItems.has(item.cartItemId));
+
+    React.useEffect(() => {
+        if (reservationId) {
+            fetch(`${API_URL}/api/reservations/${reservationId}`)
+                .then(res => {
+                    if (!res.ok) return null;
+                    return res.json();
+                })
+                .then(data => {
+                    if (data && data.status) {
+                        if (data.status === 'CONFIRMED') {
+                            clearReservationLink();
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Pre-Order Unavailable',
+                                text: `Reservation #${reservationId} has been confirmed by the admin. Pre-ordering is no longer available. Your cart has been switched to regular checkout.`,
+                                confirmButtonColor: '#A04000'
+                            });
+                        } else if (data.status !== 'PENDING') {
+                            clearReservationLink();
+                        }
+                    }
+                })
+                .catch(err => console.error("Error validating reservation pre-order:", err));
+        }
+    }, [reservationId]);
+
+    // Totals are computed from SELECTED items only
+    const itemCount = selectedCart.reduce((sum, item) => sum + item.quantity, 0);
+    const total = selectedCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const cartTotalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
     const handleIncrement = (item) => {
         updateQuantity(item.cartItemId, item.quantity + 1);
@@ -208,6 +308,15 @@ const CartPage = () => {
     };
 
     const handleProceedToCheckout = () => {
+        if (selectedCart.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Items Selected',
+                text: 'Please select at least one item to checkout.',
+                confirmButtonColor: '#A04000'
+            });
+            return;
+        }
         if (!isAuthenticated) {
             Swal.fire({
                 icon: 'warning',
@@ -230,11 +339,14 @@ const CartPage = () => {
                 return res.json();
             })
             .then(data => {
+                const eligible = (data.address || '').toLowerCase().includes('padre burgos');
+                setIsEligibleForDelivery(eligible);
+                setFulfillmentMethod(eligible ? 'DELIVERY' : 'PICKUP');
                 setCheckoutForm(prev => ({
                     ...prev,
                     recipientName: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
                     contactNumber: data.phone || '',
-                    deliveryAddress: data.address || ''
+                    deliveryAddress: reservationId ? `Dine-In (Pre-Order for Reservation #${reservationId})` : (data.address || '')
                 }));
             })
             .catch(err => {
@@ -245,6 +357,10 @@ const CartPage = () => {
                 setStep(2);
             });
         } else {
+            setCheckoutForm(prev => ({
+                ...prev,
+                deliveryAddress: reservationId ? `Dine-In (Pre-Order for Reservation #${reservationId})` : prev.deliveryAddress
+            }));
             setStep(2);
         }
     };
@@ -259,11 +375,23 @@ const CartPage = () => {
     };
 
     const handlePlaceOrder = async () => {
-        if (!checkoutForm.recipientName || !checkoutForm.contactNumber || !checkoutForm.deliveryAddress) {
+        if (selectedCart.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Items Selected',
+                text: 'Please go back and select items to checkout.',
+                confirmButtonColor: '#A04000'
+            });
+            return;
+        }
+        const needsAddress = !reservationId && fulfillmentMethod === 'DELIVERY';
+        if (!checkoutForm.recipientName || !checkoutForm.contactNumber || (needsAddress && !checkoutForm.deliveryAddress)) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Required Fields',
-                text: 'Please fill in all recipient and delivery information.',
+                text: needsAddress
+                    ? 'Please fill in your name, contact number, and delivery address.'
+                    : 'Please fill in your name and contact number.',
                 confirmButtonColor: '#A04000'
             });
             return;
@@ -282,8 +410,20 @@ const CartPage = () => {
         if (result.isConfirmed) {
             setIsCheckingOut(true);
             try {
-                // Construct notes including recipient name, contact, and payment method info
-                const combinedNotes = `Recipient: ${checkoutForm.recipientName} | Contact: ${checkoutForm.contactNumber} | Address: ${checkoutForm.deliveryAddress} | Payment: ${checkoutForm.paymentMethod} | Notes: ${checkoutForm.notes || 'None'}`;
+                const isDineIn = !!reservationId;
+                const isPickup = !isDineIn && fulfillmentMethod === 'PICKUP';
+                const addressOrType = isDineIn
+                    ? `Dine-In (Pre-order for Reservation #${reservationId})`
+                    : isPickup ? 'Pick-Up at Duyanan Restaurant' : checkoutForm.deliveryAddress;
+                const paymentLabel = checkoutForm.paymentMethod === 'COD' 
+                    ? (isDineIn ? 'Pay at Restaurant' : 'Cash on Delivery') 
+                    : 'G-Cash';
+
+                const combinedNotes = isDineIn
+                    ? `ORDER TYPE: DINE-IN (Reservation #${reservationId}) | Guest: ${checkoutForm.recipientName} | Contact: ${checkoutForm.contactNumber} | Payment: ${paymentLabel} | Notes: ${checkoutForm.notes || 'None'}`
+                    : isPickup
+                        ? `ORDER TYPE: PICK-UP | Recipient: ${checkoutForm.recipientName} | Contact: ${checkoutForm.contactNumber} | Payment: ${paymentLabel} | Notes: ${checkoutForm.notes || 'None'}`
+                        : `ORDER TYPE: DELIVERY | Recipient: ${checkoutForm.recipientName} | Contact: ${checkoutForm.contactNumber} | Address: ${checkoutForm.deliveryAddress} | Payment: ${paymentLabel} | Notes: ${checkoutForm.notes || 'None'}`;
                 
                 const response = await fetch(`${API_URL}/api/orders`, {
                     method: 'POST',
@@ -292,11 +432,14 @@ const CartPage = () => {
                         'Authorization': `Bearer ${user.token}`
                     },
                     body: JSON.stringify({
+                        reservationId: reservationId ? parseInt(reservationId, 10) : null,
+                        orderType: isDineIn ? "DINE_IN" : fulfillmentMethod,
                         notes: combinedNotes,
-                        items: cart.map(item => ({
+                        items: selectedCart.map(item => ({
                             productId: item.id,
                             quantity: item.quantity,
-                            variant: item.variant
+                            variant: item.variant,
+                            price: item.price
                         }))
                     })
                 });
@@ -305,24 +448,36 @@ const CartPage = () => {
 
                 if (response.ok) {
                     setOrderResult({
-                        id: data.id || 'N/A',
+                        id: data.id || data.orderId || 'N/A',
                         total: total,
                         recipientName: checkoutForm.recipientName,
-                        deliveryAddress: checkoutForm.deliveryAddress,
-                        paymentMethod: checkoutForm.paymentMethod
+                        deliveryAddress: addressOrType,
+                        paymentMethod: checkoutForm.paymentMethod,
+                        isDineIn: isDineIn,
+                        isPickup: isPickup,
+                        reservationId: reservationId
                     });
                     
                     Swal.fire({
                         icon: 'success',
-                        title: 'Order Placed! 🎉',
-                        text: 'Your delicious meal is now being prepared.',
+                        title: isDineIn ? 'Pre-Order Placed! 🍽️' : 'Order Placed! 🎉',
+                        text: isDineIn
+                            ? 'Your pre-ordered food is confirmed and will be prepared for your reserved table!'
+                            : isPickup
+                                ? 'Your order is confirmed! Please pick it up at Duyanan Restaurant when ready.'
+                                : 'Your delicious meal is being prepared and will be delivered shortly.',
                         confirmButtonColor: '#A04000',
                         timer: 3000
                     });
 
-                    clearCart();
+                    // Only remove the selected/checked-out items from cart, keep the rest
+                    selectedCart.forEach(item => removeFromCart(item.cartItemId));
+                    setSelectedItems(new Set());
                     setStep(3);
                 } else {
+                    if (data.error && (data.error.includes('confirmed') || data.error.includes('Pre-ordering'))) {
+                        clearReservationLink();
+                    }
                     Swal.fire({
                         icon: 'error',
                         title: 'Order Failed',
@@ -391,12 +546,50 @@ const CartPage = () => {
                         <>
                             {/* ─── Left: Cart Items ─── */}
                             <div className="col-lg-8">
+                                {reservationId && (
+                                    <div style={{
+                                        background: 'linear-gradient(135deg, #fff3cd, #ffe8a1)',
+                                        border: '1.5px solid #ffeba2',
+                                        borderRadius: '14px',
+                                        padding: '14px 20px',
+                                        marginBottom: '20px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        color: '#856404',
+                                        boxShadow: '0 2px 10px rgba(0,0,0,0.04)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <span style={{ fontSize: '1.5rem' }}>🍽️</span>
+                                            <div>
+                                                <strong style={{ fontSize: '0.95rem', display: 'block' }}>Pre-ordering for Reservation #{reservationId}</strong>
+                                                <span style={{ fontSize: '0.82rem', opacity: 0.9 }}>This order will be linked to your reservation.</span>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={clearReservationLink}
+                                            style={{
+                                                background: 'rgba(133, 100, 4, 0.1)',
+                                                border: '1px solid rgba(133, 100, 4, 0.2)',
+                                                borderRadius: '8px',
+                                                color: '#856404',
+                                                fontSize: '0.78rem',
+                                                fontWeight: 700,
+                                                padding: '6px 12px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Unlink
+                                        </button>
+                                    </div>
+                                )}
+
                                 <div className="d-flex justify-content-between align-items-center mb-3">
                                     <h4 style={{ color: 'var(--primary-brown)', fontWeight: 700, margin: 0 }}>
                                         <i className="bi bi-bag-check me-2" style={{ opacity: 0.6 }}></i>
                                         Your Order
                                         <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#aaa', marginLeft: 8 }}>
-                                            ({itemCount} {itemCount === 1 ? 'item' : 'items'})
+                                            ({cartTotalCount} {cartTotalCount === 1 ? 'item' : 'items'})
                                         </span>
                                     </h4>
                                     <button className="clear-cart-btn" onClick={handleClearCart}>
@@ -404,9 +597,40 @@ const CartPage = () => {
                                     </button>
                                 </div>
 
+                                {/* Select All Bar */}
+                                <div className="select-all-bar">
+                                    <input
+                                        type="checkbox"
+                                        className="cart-checkbox"
+                                        id="select-all-checkbox"
+                                        checked={isAllSelected}
+                                        onChange={toggleSelectAll}
+                                    />
+                                    <label htmlFor="select-all-checkbox">
+                                        {isAllSelected ? 'Deselect All' : 'Select All'}
+                                    </label>
+                                    {selectedItems.size > 0 && selectedItems.size < cart.length && (
+                                        <span className="selected-count-badge">
+                                            {selectedItems.size} of {cart.length} selected
+                                        </span>
+                                    )}
+                                    {selectedItems.size === cart.length && (
+                                        <span className="selected-count-badge">
+                                            All selected
+                                        </span>
+                                    )}
+                                </div>
+
                                 {cart.map((item, index) => (
-                                    <div className="cart-item-card" key={item.cartItemId} style={{ animationDelay: `${index * 0.06}s` }}>
+                                    <div className={`cart-item-card ${!selectedItems.has(item.cartItemId) ? 'unselected' : ''}`} key={item.cartItemId} style={{ animationDelay: `${index * 0.06}s` }}>
                                         <div className="d-flex align-items-start gap-3">
+                                            <input
+                                                type="checkbox"
+                                                className="cart-checkbox"
+                                                checked={selectedItems.has(item.cartItemId)}
+                                                onChange={() => toggleItem(item.cartItemId)}
+                                                title={selectedItems.has(item.cartItemId) ? 'Deselect item' : 'Select item for checkout'}
+                                            />
                                             <img 
                                                 src={item.imageUrl || 'https://placehold.co/72x72/f5ebe0/a04000?text=🍽️'} 
                                                 alt={item.name} 
@@ -472,12 +696,14 @@ const CartPage = () => {
                                     </h5>
 
                                     <div className="summary-row">
-                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Items ({itemCount})</span>
+                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Selected ({itemCount} of {cartTotalCount})</span>
                                         <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>₱{total.toFixed(2)}</span>
                                     </div>
                                     <div className="summary-row">
-                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Delivery</span>
-                                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#27ae60' }}>Free</span>
+                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>{reservationId ? 'Order Type' : 'Fulfillment'}</span>
+                                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#27ae60' }}>
+                                            {reservationId ? 'Dine-In 🍽️' : fulfillmentMethod === 'PICKUP' ? '🏃 Pick-Up' : '🚚 Delivery'}
+                                        </span>
                                     </div>
 
                                     <div className="summary-divider"></div>
@@ -494,7 +720,8 @@ const CartPage = () => {
                                     <button 
                                         className="checkout-btn" 
                                         onClick={handleProceedToCheckout}
-                                        disabled={loadingProfile}
+                                        disabled={loadingProfile || selectedItems.size === 0}
+                                        style={selectedItems.size === 0 ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                                     >
                                         {loadingProfile ? (
                                             <><span className="spinner-border spinner-border-sm me-2"></span> Loading...</>
@@ -528,18 +755,18 @@ const CartPage = () => {
                             <div className="col-lg-8">
                                 <div className="checkout-form-card">
                                     <h5 style={{ fontWeight: 700, color: 'var(--primary-brown)', marginBottom: 20 }}>
-                                        <i className="bi bi-truck me-2" style={{ opacity: 0.6 }}></i>
-                                        Delivery & Recipient Details
+                                        <i className={`bi ${reservationId ? 'bi-shop' : 'bi-truck'} me-2`} style={{ opacity: 0.6 }}></i>
+                                        {reservationId ? `Dine-In Pre-Order Details (Reservation #${reservationId})` : 'Delivery & Recipient Details'}
                                     </h5>
                                     
                                     <div className="form-group-custom">
-                                        <label>Recipient Full Name <span className="text-danger">*</span></label>
+                                        <label>Guest / Contact Full Name <span className="text-danger">*</span></label>
                                         <input 
                                             type="text" 
                                             name="recipientName"
                                             value={checkoutForm.recipientName}
                                             onChange={handleFormChange}
-                                            placeholder="Enter full name of the recipient"
+                                            placeholder="Enter full name"
                                             required
                                         />
                                     </div>
@@ -556,17 +783,85 @@ const CartPage = () => {
                                         />
                                     </div>
 
-                                    <div className="form-group-custom">
-                                        <label>Delivery Address <span className="text-danger">*</span></label>
-                                        <textarea 
-                                            name="deliveryAddress"
-                                            value={checkoutForm.deliveryAddress}
-                                            onChange={handleFormChange}
-                                            rows="3"
-                                            placeholder="Enter complete house number, street, barangay, and municipality"
-                                            required
-                                        />
-                                    </div>
+                                    {reservationId ? (
+                                        <div className="form-group-custom">
+                                            <label>Order Type & Table Location</label>
+                                            <div style={{ background: '#fff9e6', border: '1.5px solid #ffe8a1', borderRadius: '12px', padding: '14px 18px', color: '#856404' }}>
+                                                <div style={{ fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                    <span>🍽️ Dine-In Pre-Order</span>
+                                                    <span className="badge bg-warning text-dark border">Reservation #{reservationId}</span>
+                                                </div>
+                                                <div style={{ fontSize: '0.82rem', marginTop: 4, opacity: 0.9 }}>
+                                                    Your ordered dishes will be prepared fresh and served directly at your reserved table upon arrival!
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {/* ── Fulfillment Method Toggle ── */}
+                                            <div className="form-group-custom">
+                                                <label>Fulfillment Method <span className="text-danger">*</span></label>
+                                                <div className="fulfillment-options">
+                                                    <div
+                                                        id="fulfillment-delivery"
+                                                        className={`fulfillment-option-card ${fulfillmentMethod === 'DELIVERY' ? 'selected' : ''} ${!isEligibleForDelivery ? 'disabled' : ''}`}
+                                                        onClick={() => isEligibleForDelivery && setFulfillmentMethod('DELIVERY')}
+                                                    >
+                                                        <i className="bi bi-truck"></i>
+                                                        <span className="fc-title">Delivery</span>
+                                                        <span className="fc-sub">To your door</span>
+                                                    </div>
+                                                    <div
+                                                        id="fulfillment-pickup"
+                                                        className={`fulfillment-option-card ${fulfillmentMethod === 'PICKUP' ? 'selected' : ''}`}
+                                                        onClick={() => setFulfillmentMethod('PICKUP')}
+                                                    >
+                                                        <i className="bi bi-bag-check"></i>
+                                                        <span className="fc-title">Pick-Up</span>
+                                                        <span className="fc-sub">At the restaurant</span>
+                                                    </div>
+                                                </div>
+
+                                                {isEligibleForDelivery ? (
+                                                    <div className="delivery-area-notice eligible">
+                                                        <i className="bi bi-check-circle-fill" style={{ flexShrink: 0, marginTop: 1 }}></i>
+                                                        <span>Your address is within our delivery area in <strong>Padre Burgos, Quezon Province</strong>. Delivery is available!</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="delivery-area-notice ineligible">
+                                                        <i className="bi bi-info-circle-fill" style={{ flexShrink: 0, marginTop: 1 }}></i>
+                                                        <span>Delivery is only available within <strong>Padre Burgos, Quezon Province</strong>. Your registered address is outside the delivery area — your order is set to <strong>Pick-Up</strong>.</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* ── Address or Pick-Up Location ── */}
+                                            {fulfillmentMethod === 'DELIVERY' ? (
+                                                <div className="form-group-custom">
+                                                    <label>Delivery Address <span className="text-danger">*</span></label>
+                                                    <textarea
+                                                        name="deliveryAddress"
+                                                        value={checkoutForm.deliveryAddress}
+                                                        onChange={handleFormChange}
+                                                        rows="3"
+                                                        placeholder="Enter complete house number, street, barangay, and municipality"
+                                                        required
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="form-group-custom">
+                                                    <label>Pick-Up Location</label>
+                                                    <div style={{ background: '#f9f5f1', border: '1.5px solid #e8ddd4', borderRadius: '12px', padding: '14px 18px', color: 'var(--primary-brown)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                        <i className="bi bi-geo-alt-fill" style={{ fontSize: '1.2rem', color: 'var(--accent-orange)', flexShrink: 0 }}></i>
+                                                        <div>
+                                                            <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Duyanan Restaurant</div>
+                                                            <div style={{ fontSize: '0.8rem', color: '#999', marginTop: 2 }}>Padre Burgos, Quezon Province</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
 
                                     <div className="form-group-custom">
                                         <label>Payment Method <span className="text-danger">*</span></label>
@@ -575,8 +870,8 @@ const CartPage = () => {
                                                 className={`payment-option-card ${checkoutForm.paymentMethod === 'COD' ? 'selected' : ''}`}
                                                 onClick={() => handleSelectPayment('COD')}
                                             >
-                                                <i className="bi bi-cash-stack"></i>
-                                                <span>Cash on Delivery</span>
+                                                <i className={`bi ${reservationId ? 'bi-shop-window' : 'bi-cash-stack'}`}></i>
+                                                <span>{reservationId ? 'Pay at Restaurant' : 'Cash on Delivery'}</span>
                                             </div>
                                             <div 
                                                 className={`payment-option-card ${checkoutForm.paymentMethod === 'GCASH' ? 'selected' : ''}`}
@@ -632,8 +927,10 @@ const CartPage = () => {
                                         <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>₱{total.toFixed(2)}</span>
                                     </div>
                                     <div className="summary-row">
-                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Delivery</span>
-                                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#27ae60' }}>Free</span>
+                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>{reservationId ? 'Order Type' : 'Fulfillment'}</span>
+                                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#27ae60' }}>
+                                            {reservationId ? 'Dine-In 🍽️' : fulfillmentMethod === 'PICKUP' ? '🏃 Pick-Up' : '🚚 Delivery'}
+                                        </span>
                                     </div>
 
                                     <div className="summary-divider"></div>
@@ -669,9 +966,15 @@ const CartPage = () => {
                                 <div className="success-icon-container">
                                     <i className="bi bi-check-lg"></i>
                                 </div>
-                                <h3 style={{ color: 'var(--primary-brown)', fontWeight: 800, marginBottom: 8 }}>Order Placed Successfully! 🎉</h3>
+                                <h3 style={{ color: 'var(--primary-brown)', fontWeight: 800, marginBottom: 8 }}>
+                                    {orderResult?.isDineIn ? 'Dine-In Pre-Order Placed! 🍽️' : 'Order Placed Successfully! 🎉'}
+                                </h3>
                                 <p style={{ color: '#666', fontSize: '0.95rem', maxWidth: 450, margin: '0 auto 24px' }}>
-                                    Thank you for your purchase. Your delicious meal is being prepared and will be delivered shortly.
+                                    {orderResult?.isDineIn
+                                        ? 'Thank you! Your pre-ordered food is confirmed and will be served at your reserved table upon your arrival.'
+                                        : orderResult?.isPickup
+                                            ? 'Thank you! Your order is confirmed. Please visit Duyanan Restaurant to pick it up once it\'s ready.'
+                                            : 'Thank you for your purchase. Your delicious meal is being prepared and will be delivered shortly.'}
                                 </p>
 
                                 {orderResult && (
@@ -684,16 +987,30 @@ const CartPage = () => {
                                             <span className="fw-bold text-dark">#{orderResult.id}</span>
                                         </div>
                                         <div className="receipt-row">
-                                            <span className="text-muted">Recipient</span>
+                                            <span className="text-muted">{orderResult.isDineIn ? 'Guest Name' : 'Recipient'}</span>
                                             <span className="text-dark fw-semibold">{orderResult.recipientName}</span>
                                         </div>
                                         <div className="receipt-row">
-                                            <span className="text-muted">Delivery Address</span>
-                                            <span className="text-dark fw-semibold">{orderResult.deliveryAddress}</span>
+                                            <span className="text-muted">{orderResult.isDineIn ? 'Order Type' : orderResult.isPickup ? 'Pick-Up At' : 'Delivery Address'}</span>
+                                            <span className="text-dark fw-semibold">
+                                                {orderResult.isDineIn ? (
+                                                    <span className="badge bg-warning text-dark border">
+                                                        🍽️ Dine-In (Reservation #{orderResult.reservationId})
+                                                    </span>
+                                                ) : orderResult.isPickup ? (
+                                                    <span className="badge" style={{ background: '#fff3e0', color: '#a04000', border: '1px solid #ffcc80', fontSize: '0.85rem' }}>
+                                                        🏃 Pick-Up at Duyanan Restaurant
+                                                    </span>
+                                                ) : orderResult.deliveryAddress}
+                                            </span>
                                         </div>
                                         <div className="receipt-row">
                                             <span className="text-muted">Payment Method</span>
-                                            <span className="text-dark fw-semibold">{orderResult.paymentMethod === 'COD' ? 'Cash on Delivery (COD)' : 'G-Cash'}</span>
+                                            <span className="text-dark fw-semibold">
+                                                {orderResult.paymentMethod === 'COD' 
+                                                    ? (orderResult.isDineIn ? 'Pay at Restaurant' : 'Cash on Delivery (COD)') 
+                                                    : 'G-Cash'}
+                                            </span>
                                         </div>
                                         <div className="receipt-row receipt-total">
                                             <span>Total Amount Paid</span>

@@ -37,11 +37,11 @@ const Login = () => {
     const handleForgotPassword = async () => {
         const { value: email } = await Swal.fire({
             title: 'Forgot Password?',
-            text: 'Enter your email address and we will send you a new password.',
+            text: 'Enter your email address and we will send you a reset link.',
             input: 'email',
             inputPlaceholder: 'Enter your email address',
             showCancelButton: true,
-            confirmButtonText: 'Send New Password',
+            confirmButtonText: 'Send Reset Link',
             cancelButtonText: 'Cancel',
             confirmButtonColor: '#c2703a',
             cancelButtonColor: '#6c757d',
@@ -80,7 +80,7 @@ const Login = () => {
                     Swal.fire({
                         icon: 'success',
                         title: 'Check Your Email!',
-                        text: data.message || 'If an account with that email exists, a new password has been sent.',
+                        text: data.message || 'A password reset link has been sent to your email address.',
                         confirmButtonColor: '#c2703a',
                         background: '#1a1a2e',
                         color: '#fff',

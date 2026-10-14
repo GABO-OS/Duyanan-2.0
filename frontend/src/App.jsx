@@ -15,6 +15,7 @@ import About from './pages/About';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import ResetPassword from './pages/ResetPassword';
 import AdminPanel from './pages/AdminPanel';
 import ScrollToTop from './components/ScrollToTop';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -31,6 +32,7 @@ function App() {
                             {/* Public Auth routes */}
                             <Route path="/login" element={<Login />} />
                             <Route path="/register" element={<Register />} />
+                            <Route path="/reset-password" element={<ResetPassword />} />
 
                             {/* Public routes — visible to everyone including guests */}
                             <Route path="/" element={<Home />} />

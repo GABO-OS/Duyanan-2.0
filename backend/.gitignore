@@ -34,3 +34,6 @@ build/
 
 ### H2 Data ###
 /data/
+
+### Sensitive Config — never commit real credentials ###
+src/main/resources/application.properties

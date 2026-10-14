@@ -21,6 +21,11 @@ public class Order {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "reservation_id")
+    @JsonIgnoreProperties({"orders", "user"})
+    private Reservation reservation;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 
@@ -32,6 +37,9 @@ public class Order {
 
     @Column(nullable = false)
     private LocalDateTime orderDate = LocalDateTime.now();
+
+    @Column(name = "order_type")
+    private String orderType = "DELIVERY"; // DINE_IN, DELIVERY, PICKUP
 
     private String notes;
 
