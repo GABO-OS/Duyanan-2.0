@@ -91,6 +91,15 @@ public class DataSourceConfig {
             config.setPassword(finalPassword);
         }
 
+        // Optimized connection pool parameters for cloud MySQL (prevent connection starvation & drops)
+        config.setMaximumPoolSize(5);
+        config.setMinimumIdle(2);
+        config.setIdleTimeout(600000); // 10 minutes
+        config.setMaxLifetime(1800000); // 30 minutes
+        config.setConnectionTimeout(10000); // 10 seconds fail-fast
+        config.setKeepaliveTime(30000); // 30s keepalive ping
+        config.setPoolName("DuyananHikariPool");
+
         return new HikariDataSource(config);
     }
 }

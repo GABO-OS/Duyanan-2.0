@@ -3,10 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import Swal from 'sweetalert2';
-import duyananBg from '../assets/img/duyanan_bg.jpg';
-import sfcImg from '../assets/img/sfc.png';
-import habhabImg from '../assets/img/habhab.jpg';
-import turonImg from '../assets/img/turon.png';
+import duyananBg from '../assets/img/duyanan_bg.webp';
+import sfcImg from '../assets/img/sfc.webp';
+import habhabImg from '../assets/img/habhab.webp';
+import turonImg from '../assets/img/turon.webp';
 
 const carouselSlides = [
     {
@@ -345,7 +345,7 @@ const Home = () => {
                                         {item.tag}
                                     </span>
                                     <div style={{ overflow: 'hidden', height: '280px' }}>
-                                        <img src={item.img} className="card-img-top w-100 h-100" alt={item.name} style={{ objectFit: 'cover' }} />
+                                        <img src={item.img} className="card-img-top w-100 h-100" alt={item.name} loading="lazy" decoding="async" style={{ objectFit: 'cover' }} />
                                     </div>
                                     <div className="card-body text-center d-flex flex-column p-4">
                                         <h5 className="card-title fw-bold mb-1" style={{ color: 'var(--primary-brown)', fontSize: '1.35rem' }}>{item.name}</h5>

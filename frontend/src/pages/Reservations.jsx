@@ -8,9 +8,9 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 // Placeholder imports - using existing images. 
 // You can replace these files in the assets folder with the 3 images you uploaded!
-import bg1 from '../assets/img/duyanan_bg.jpg';
-import bg2 from '../assets/img/sfc.png';
-import bg3 from '../assets/img/habhab.jpg';
+import bg1 from '../assets/img/duyanan_bg.webp';
+import bg2 from '../assets/img/sfc.webp';
+import bg3 from '../assets/img/habhab.webp';
 
 const bgImages = [bg1, bg2, bg3];
 

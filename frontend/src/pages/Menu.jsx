@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import sfcImg from '../assets/img/sfc.png';
-import habhabImg from '../assets/img/habhab.jpg';
-import logoImg from '../assets/img/duyanan_logo.png';
+import sfcImg from '../assets/img/sfc.webp';
+import habhabImg from '../assets/img/habhab.webp';
+import logoImg from '../assets/img/duyanan_logo.webp';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import Swal from 'sweetalert2';
@@ -61,6 +61,8 @@ const Menu = () => {
     const [groupMeals, setGroupMeals] = useState([]);
     const [menuItems, setMenuItems] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isServerWakingUp, setIsServerWakingUp] = useState(false);
+    const [hasLoadError, setHasLoadError] = useState(false);
     const { addToCart } = useCart();
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
@@ -85,9 +87,22 @@ const Menu = () => {
         }
     };
 
-    useEffect(() => {
-        axios.get(`${API_URL}/api/products`)
+    const fetchMenuData = () => {
+        setIsLoading(true);
+        setHasLoadError(false);
+        setIsServerWakingUp(false);
+
+        // Warn user if backend is experiencing a Render container cold start
+        const warmUpTimer = setTimeout(() => {
+            setIsServerWakingUp(true);
+        }, 3500);
+
+        axios.get(`${API_URL}/api/products`, { timeout: 15000 })
             .then(response => {
+                clearTimeout(warmUpTimer);
+                setIsServerWakingUp(false);
+                setHasLoadError(false);
+
                 const updatedProducts = response.data.map(p => {
                     let finalImg = p.imageUrl;
                     if (p.name === 'Sizzling Fried Chicken' || p.name === 'Chicken Inasal' || p.imageUrl === 'sfc.png' || p.imageUrl === 'sfc.jpg') {
@@ -115,7 +130,10 @@ const Menu = () => {
                 setGroupMeals(filteredGroupMeals);
             })
             .catch(error => {
-                console.error('Error fetching products:', error);
+                clearTimeout(warmUpTimer);
+                setIsServerWakingUp(false);
+                setHasLoadError(true);
+                console.warn('Backend unavailable or slow to respond, using fallback menu items:', error?.message);
                 
                 // Fallbacks
                 const fallbackRegular = [
@@ -181,7 +199,14 @@ const Menu = () => {
                     }
                 ]);
             })
-            .finally(() => setIsLoading(false));
+            .finally(() => {
+                clearTimeout(warmUpTimer);
+                setIsLoading(false);
+            });
+    };
+
+    useEffect(() => {
+        fetchMenuData();
     }, []);
 
     const getPackageLimits = (pkgName) => {
@@ -631,6 +656,50 @@ const Menu = () => {
                     &nbsp;or&nbsp;
                     <a href="/register" style={{ color: '#ffd580', textDecoration: 'underline', fontWeight: 700 }}>Register</a>
                     &nbsp;to order.
+                </div>
+            )}
+
+            {/* Server warm-up notice banner */}
+            {isServerWakingUp && (
+                <div style={{
+                    background: 'linear-gradient(90deg, #d35400 0%, #a04000 100%)',
+                    color: '#fff',
+                    textAlign: 'center',
+                    padding: '8px 20px',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px'
+                }}>
+                    <span className="spinner-border spinner-border-sm text-light" role="status" style={{ width: '1rem', height: '1rem' }}></span>
+                    <span>☕ Duyanan&apos;s cloud kitchen is waking up from idle... Please hold on while we fire up the ovens!</span>
+                </div>
+            )}
+
+            {/* Offline fallback info banner with retry */}
+            {hasLoadError && (
+                <div style={{
+                    background: '#f8f9fa',
+                    borderBottom: '1px solid #e9ecef',
+                    color: '#6c757d',
+                    textAlign: 'center',
+                    padding: '8px 20px',
+                    fontSize: '0.86rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '12px'
+                }}>
+                    <span>Displaying cached menu items.</span>
+                    <button 
+                        className="btn btn-sm btn-outline-secondary py-0 px-2 fw-bold" 
+                        onClick={fetchMenuData}
+                        style={{ fontSize: '0.8rem', borderRadius: '15px' }}
+                    >
+                        <i className="bi bi-arrow-clockwise me-1"></i> Check Server
+                    </button>
                 </div>
             )}
 
