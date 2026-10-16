@@ -5,6 +5,8 @@ import com.duyanan.backend.repository.*;
 import com.duyanan.backend.service.EmailService;
 import com.duyanan.backend.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/auth")
 public class UserController {
+
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
@@ -231,14 +235,17 @@ public class UserController {
     @PostMapping("/forgot-password")
     @Transactional
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
-        if (email == null || email.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Email is required."));
+        String rawEmail = body.get("email");
+        if (rawEmail == null || rawEmail.trim().isEmpty() || !rawEmail.contains("@")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "A valid email address is required."));
         }
+        // Normalize to lowercase and trimmed, matching registration format
+        String email = rawEmail.trim().toLowerCase();
 
         var userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            // Still return success to not reveal if the email exists
+            // Still return success to prevent user enumeration attacks
+            log.info("Password reset requested for unregistered or non-matching email: {}", email);
             return ResponseEntity.ok(Map.of(
                 "message", "If an account with that email exists, a password reset link has been sent."
             ));
@@ -257,9 +264,11 @@ public class UserController {
         // Send the email
         try {
             emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
+            log.info("Password reset email sent successfully to: {}", user.getEmail());
         } catch (Exception e) {
+            log.error("CRITICAL: Failed to send password reset email to {} via SMTP. Check MAIL_USERNAME and MAIL_PASSWORD configuration. Error: {}", user.getEmail(), e.getMessage(), e);
             return ResponseEntity.status(500).body(Map.of(
-                "error", "Failed to send reset email. Please try again later."
+                "error", "Failed to send reset email. Please ensure mail server configuration is active or try again later."
             ));
         }
 

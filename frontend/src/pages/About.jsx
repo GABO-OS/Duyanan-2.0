@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import '../styles/about.css';
-import duyananBg from '../assets/img/duyanan_bg.jpg';
+import duyananBg from '../assets/img/duyanan_bg.webp';
 
 // Fallback images for hardcoded events (used when API is unreachable)
-import eventCatering from '../assets/img/event_catering.png';
-import eventFiesta from '../assets/img/event_fiesta.png';
-import eventOpening from '../assets/img/event_opening.png';
-import eventCooking from '../assets/img/event_cooking.png';
-import eventBirthday from '../assets/img/event_birthday.png';
-import eventCharity from '../assets/img/event_charity.png';
+import eventCatering from '../assets/img/event_catering.webp';
+import eventFiesta from '../assets/img/event_fiesta.webp';
+import eventOpening from '../assets/img/event_opening.webp';
+import eventCooking from '../assets/img/event_cooking.webp';
+import eventBirthday from '../assets/img/event_birthday.webp';
+import eventCharity from '../assets/img/event_charity.webp';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -280,7 +280,7 @@ const About = () => {
                                         >
                                             {imgSrc && (
                                                 <div className="timeline-img-wrap">
-                                                    <img src={imgSrc} alt={event.title} />
+                                                    <img src={imgSrc} alt={event.title} loading="lazy" decoding="async" />
                                                     <span className="timeline-date-badge">
                                                         <i className="bi bi-calendar-event me-1" />
                                                         {event.eventDate}

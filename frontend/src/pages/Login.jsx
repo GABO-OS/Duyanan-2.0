@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Swal from 'sweetalert2';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import duyananBg from '../assets/img/duyanan_bg.jpg';
+import duyananBg from '../assets/img/duyanan_bg.webp';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -59,6 +59,8 @@ const Login = () => {
         });
 
         if (email) {
+            const cleanEmail = email.trim().toLowerCase();
+
             Swal.fire({
                 title: 'Sending...',
                 text: 'Please wait while we process your request.',
@@ -68,12 +70,28 @@ const Login = () => {
                 color: '#fff',
             });
 
+            // If the server is sleeping on Render free tier, notify user after 3.5s
+            const warmUpTimer = setTimeout(() => {
+                if (Swal.isVisible()) {
+                    Swal.update({
+                        text: "☕ Duyanan's server is waking up from sleep... Please hold on a moment!",
+                    });
+                }
+            }, 3500);
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000);
+
             try {
                 const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email }),
+                    body: JSON.stringify({ email: cleanEmail }),
+                    signal: controller.signal,
                 });
+                clearTimeout(warmUpTimer);
+                clearTimeout(timeoutId);
+
                 const data = await response.json();
 
                 if (response.ok) {
@@ -96,10 +114,16 @@ const Login = () => {
                     });
                 }
             } catch (err) {
+                clearTimeout(warmUpTimer);
+                clearTimeout(timeoutId);
+
+                const isTimeout = err.name === 'AbortError';
                 Swal.fire({
                     icon: 'error',
-                    title: 'Connection Error',
-                    text: 'Could not connect to the server. Please try again later.',
+                    title: isTimeout ? 'Server Wake-Up Timeout' : 'Connection Error',
+                    text: isTimeout 
+                        ? 'The cloud server took longer than 20 seconds to respond. Please give it a few moments to finish starting and try again.'
+                        : 'Could not connect to the server. Please check your internet connection and try again.',
                     confirmButtonColor: '#c2703a',
                     background: '#1a1a2e',
                     color: '#fff',
