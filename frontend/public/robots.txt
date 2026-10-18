@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Disallow private user/admin routes
+Disallow: /cart
+Disallow: /profile
+Disallow: /admin
+Disallow: /reset-password
+
+Sitemap: https://duyanan-frontend.onrender.com/sitemap.xml
