@@ -16,8 +16,8 @@ const GroupMeals = () => {
     const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
-        // Fetch all products
-        axios.get(`${API_URL}/api/products`)
+        // Fetch all products with 15s timeout
+        axios.get(`${API_URL}/api/products`, { timeout: 15000 })
             .then(response => {
                 const allProducts = response.data;
                 // Filter only Group Meals
