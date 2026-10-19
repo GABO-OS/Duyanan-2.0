@@ -79,7 +79,7 @@ const ResetPassword = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '100px 20px 40px',
+                padding: '90px 14px 40px',
                 backgroundImage: `url(${duyananBg})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
@@ -133,12 +133,11 @@ const ResetPassword = () => {
 
                 {/* Right — Form Panel */}
                 <div
-                    className="flex-grow-1 d-flex flex-column justify-content-center"
+                    className="flex-grow-1 d-flex flex-column justify-content-center p-3 p-sm-4 p-md-5"
                     style={{
                         background: 'rgba(255,255,255,0.10)',
                         backdropFilter: 'blur(28px) saturate(200%)',
                         WebkitBackdropFilter: 'blur(28px) saturate(200%)',
-                        padding: '48px 44px',
                     }}
                 >
                     {/* Lock icon */}
@@ -272,7 +271,7 @@ const ResetPassword = () => {
                             <button
                                 type="submit"
                                 className="btn-brand w-100"
-                                style={{ borderRadius: '50px', padding: '13px' }}
+                                style={{ borderRadius: '50px', padding: '13px', minHeight: '48px' }}
                                 disabled={isLoading}
                             >
                                 {isLoading

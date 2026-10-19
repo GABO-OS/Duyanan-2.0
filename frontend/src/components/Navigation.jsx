@@ -94,38 +94,109 @@ const Navigation = () => {
 
     return (
         <nav className={`navbar navbar-expand-lg nav-glass fixed-top ${navClass}`} style={{ minHeight: 'var(--nav-height)' }}>
-            <div className="container-fluid px-4 px-lg-5">
+            <div className="container-fluid px-3 px-sm-4 px-lg-5">
                 {/* Mobile Header Layout (visible only on small screens) */}
-                <div className="d-flex justify-content-between align-items-center w-100 d-lg-none position-relative">
+                <div className="d-flex justify-content-between align-items-center w-100 d-lg-none position-relative" style={{ minHeight: '52px' }}>
                     {/* Hamburger Menu on Left */}
-                    <button className="navbar-toggler border-0 shadow-none px-0" type="button" onClick={() => setIsNavCollapsed(!isNavCollapsed)} aria-controls="navbarCollapse" aria-expanded={!isNavCollapsed} aria-label="Toggle navigation">
-                        <i className={`bi ${isNavCollapsed ? 'bi-list' : 'bi-x-lg'} text-white`} style={{ fontSize: '2.2rem', display: 'inline-block', transition: 'transform 0.3s ease', transform: isNavCollapsed ? 'rotate(0deg)' : 'rotate(90deg)' }}></i>
+                    <button 
+                        className="navbar-toggler border-0 shadow-none p-1 d-flex align-items-center justify-content-center touch-target" 
+                        type="button" 
+                        onClick={() => setIsNavCollapsed(!isNavCollapsed)} 
+                        aria-controls="navbarCollapse" 
+                        aria-expanded={!isNavCollapsed} 
+                        aria-label="Toggle navigation"
+                        style={{ minWidth: '44px', minHeight: '44px' }}
+                    >
+                        <i className={`bi ${isNavCollapsed ? 'bi-list' : 'bi-x-lg'} text-white`} style={{ fontSize: '1.9rem', display: 'inline-block', transition: 'transform 0.3s ease', transform: isNavCollapsed ? 'rotate(0deg)' : 'rotate(90deg)' }}></i>
                     </button>
                     
                     {/* Brand Centered */}
-                    <Link className="navbar-brand mx-auto d-flex align-items-center justify-content-center" to="/" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-                        <span style={{ fontSize: '1.8rem', color: '#fff', fontWeight: 'bold', textShadow: '1px 1px 2px rgba(0,0,0,0.5)', marginRight: '4px' }}>Duyanan</span>
-                        <span style={{ fontSize: '1.2rem', transform: 'rotate(-20deg)', filter: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.3))' }}>🍃</span>
+                    <Link 
+                        className="navbar-brand mx-auto d-flex align-items-center justify-content-center text-truncate" 
+                        to="/" 
+                        style={{ 
+                            position: 'absolute', 
+                            left: '50%', 
+                            transform: 'translateX(-50%)', 
+                            maxWidth: 'calc(100% - 130px)', 
+                            pointerEvents: 'auto',
+                            margin: 0
+                        }}
+                    >
+                        <span style={{ fontSize: 'clamp(1.25rem, 5vw, 1.75rem)', color: '#fff', fontWeight: 'bold', textShadow: '1px 1px 2px rgba(0,0,0,0.5)', marginRight: '4px', whiteSpace: 'nowrap' }}>Duyanan</span>
+                        <span style={{ fontSize: '1.15rem', transform: 'rotate(-20deg)', filter: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.3))' }}>🍃</span>
                     </Link>
 
-                    {/* Cart Button on Right */}
-                    <Link className="btn bg-white rounded-circle d-flex align-items-center justify-content-center shadow-sm position-relative" to={isAuthenticated ? "/cart" : "/menu"} style={{ width: '42px', height: '42px' }}>
-                        <i className="bi bi-cart3" style={{ fontSize: '1.3rem', color: 'var(--accent-orange)' }}></i>
-                        {isAuthenticated && cartCount > 0 && (<span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark" style={{ transform: 'translate(-30%, -30%)', fontSize: '0.7rem' }}>{cartCount}</span>)}
-                    </Link>
+                    {/* Right Controls Group: Optional Notification + Cart */}
+                    <div className="d-flex align-items-center gap-2">
+                        {isAuthenticated && totalNotifications > 0 && (
+                            <Link 
+                                className="btn rounded-circle d-flex align-items-center justify-content-center position-relative p-0"
+                                to="/profile"
+                                state={{ tab: 'orders' }}
+                                aria-label="Notifications"
+                                style={{ width: '38px', height: '38px', backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}
+                            >
+                                <i className="bi bi-bell-fill" style={{ fontSize: '1rem' }}></i>
+                                <span 
+                                    className="position-absolute badge rounded-pill bg-danger border border-white"
+                                    style={{ top: '-3px', right: '-3px', fontSize: '0.62rem', padding: '2px 5px' }}
+                                >
+                                    {totalNotifications}
+                                </span>
+                            </Link>
+                        )}
+                        <Link 
+                            className="btn bg-white rounded-circle d-flex align-items-center justify-content-center shadow-sm position-relative p-0" 
+                            to={isAuthenticated ? "/cart" : "/menu"} 
+                            style={{ width: '40px', height: '40px' }}
+                            aria-label="View cart"
+                        >
+                            <i className="bi bi-cart3" style={{ fontSize: '1.25rem', color: 'var(--accent-orange)' }}></i>
+                            {isAuthenticated && cartCount > 0 && (
+                                <span 
+                                    className="position-absolute badge rounded-pill bg-dark border border-white shadow-sm" 
+                                    style={{ top: '-4px', right: '-4px', fontSize: '0.65rem', padding: '2px 5px' }}
+                                >
+                                    {cartCount}
+                                </span>
+                            )}
+                        </Link>
+                    </div>
                 </div>
+
+                {/* Mobile Drawer Backdrop Overlay */}
+                {!isNavCollapsed && (
+                    <div 
+                        className="navbar-drawer-backdrop d-lg-none" 
+                        onClick={() => setIsNavCollapsed(true)} 
+                        aria-hidden="true"
+                    />
+                )}
 
                 {/* Desktop Brand (hidden on mobile) */}
                 <Link className="navbar-brand d-none d-lg-flex align-items-center" to="/">
                    <span style={{ fontSize: '2rem', color: '#fff', marginRight: '10px', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Duyanan</span>
                    <span style={{ fontSize: '1.5rem', transform: 'rotate(-20deg)', filter: 'drop-shadow(2px 2px 2px rgba(0,0,0,0.3))' }}>🍃</span>
                 </Link>
+                
                 <div className={`${isNavCollapsed ? 'collapse' : ''} navbar-collapse`} id="navbarCollapse">
+                    {/* Mobile Drawer Header */}
+                    <div className="drawer-header d-lg-none">
+                        <div className="d-flex align-items-center gap-2">
+                            <span style={{ fontSize: '1.4rem' }}>🍃</span>
+                            <span className="fw-bold fs-5" style={{ color: 'var(--primary-brown)' }}>Duyanan</span>
+                        </div>
+                        <button 
+                            type="button" 
+                            className="btn-close" 
+                            onClick={() => setIsNavCollapsed(true)} 
+                            aria-label="Close menu"
+                            style={{ padding: '8px' }}
+                        ></button>
+                    </div>
+
                     <ul className="navbar-nav ms-auto align-items-center">
-                        {/* Mobile Navigation Header */}
-                        <li className="nav-item d-lg-none w-100 mb-2 nav-header">
-                            <span className="px-3 fw-bold fs-5" style={{ color: 'var(--primary-brown)', letterSpacing: '1px' }}>Navigation</span>
-                        </li>
                         <li className="nav-item"><Link className={`nav-link ${location.pathname === '/' ? 'active' : ''}`} to="/" onClick={() => setIsNavCollapsed(true)} style={{ color: '#fff', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}><i className="bi bi-house-door me-3 d-lg-none"></i>Home</Link></li>
                         <li className="nav-item"><Link className={`nav-link ${location.pathname === '/menu' ? 'active' : ''}`} to="/menu" onClick={() => setIsNavCollapsed(true)} style={{ color: '#fff', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}><i className="bi bi-book me-3 d-lg-none"></i>Menu</Link></li>
                         <li className="nav-item"><Link className={`nav-link ${location.pathname === '/book-reservation' ? 'active' : ''}`} to="/book-reservation" onClick={() => setIsNavCollapsed(true)} style={{ color: '#fff', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}><i className="bi bi-calendar-event me-3 d-lg-none"></i>Book Reservation</Link></li>
@@ -189,12 +260,32 @@ const Navigation = () => {
                                         </li>
                                     </ul>
                                 </li>
-                                <li className="nav-item w-100 d-lg-none">
-                                     <Link className="nav-link d-flex justify-content-between align-items-center" to="/profile" onClick={() => setIsNavCollapsed(true)} style={{ color: '#fff', fontWeight: 'bold' }}>
+                                <li className="nav-item w-100 d-lg-none mt-2" style={{ borderTop: '1px solid rgba(160, 64, 0, 0.12)', paddingTop: '6px' }}>
+                                     <Link className="nav-link d-flex justify-content-between align-items-center" to="/profile" onClick={() => setIsNavCollapsed(true)} style={{ color: 'var(--primary-brown)', fontWeight: 'bold' }}>
                                         <span><i className="bi bi-person-circle me-3"></i>My Profile</span>
                                         {totalNotifications > 0 && (
                                             <span className="badge rounded-pill bg-danger px-2 py-1" style={{ fontSize: '0.75rem' }}>
                                                 {totalNotifications}
+                                            </span>
+                                        )}
+                                     </Link>
+                                </li>
+                                <li className="nav-item w-100 d-lg-none">
+                                     <Link className="nav-link d-flex justify-content-between align-items-center" to="/profile" state={{ tab: 'orders' }} onClick={() => setIsNavCollapsed(true)} style={{ color: 'var(--primary-brown)', fontWeight: '600' }}>
+                                        <span><i className="bi bi-receipt me-3"></i>My Orders</span>
+                                        {pendingOrdersCount > 0 && (
+                                            <span className="badge rounded-pill bg-danger px-2 py-0.5" style={{ fontSize: '0.7rem' }}>
+                                                {pendingOrdersCount}
+                                            </span>
+                                        )}
+                                     </Link>
+                                </li>
+                                <li className="nav-item w-100 d-lg-none">
+                                     <Link className="nav-link d-flex justify-content-between align-items-center" to="/profile" state={{ tab: 'reservations' }} onClick={() => setIsNavCollapsed(true)} style={{ color: 'var(--primary-brown)', fontWeight: '600' }}>
+                                        <span><i className="bi bi-calendar-event me-3"></i>My Reservations</span>
+                                        {pendingReservationsCount > 0 && (
+                                            <span className="badge rounded-pill bg-danger px-2 py-0.5" style={{ fontSize: '0.7rem' }}>
+                                                {pendingReservationsCount}
                                             </span>
                                         )}
                                      </Link>
@@ -206,7 +297,7 @@ const Navigation = () => {
                                      </Link>
                                      {cartCount > 0 && (<span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark shadow" style={{ transform: 'translate(-50%, -50%)', zIndex: 10 }}>{cartCount}</span>)}
                                 </li>
-                                <li className="nav-item w-100 d-lg-none" style={{ borderTop: '2px solid rgba(160, 64, 0, 0.1)' }}>
+                                <li className="nav-item w-100 d-lg-none mt-2" style={{ borderTop: '2px solid rgba(160, 64, 0, 0.1)' }}>
                                      <button className="nav-link text-danger w-100 text-start border-0 bg-transparent" onClick={handleLogout} style={{ fontWeight: 'bold' }}>
                                         <i className="bi bi-box-arrow-right me-3"></i>Log out
                                      </button>
@@ -219,9 +310,14 @@ const Navigation = () => {
                                         <i className="bi bi-person"></i>
                                     </Link>
                                 </li>
-                                <li className="nav-item w-100 d-lg-none">
-                                    <Link className="nav-link" to="/login" onClick={() => setIsNavCollapsed(true)} style={{ fontWeight: 'bold' }}>
+                                <li className="nav-item w-100 d-lg-none mt-2" style={{ borderTop: '1px solid rgba(160, 64, 0, 0.12)', paddingTop: '6px' }}>
+                                    <Link className="nav-link" to="/login" onClick={() => setIsNavCollapsed(true)} style={{ fontWeight: 'bold', color: 'var(--accent-orange)' }}>
                                         <i className="bi bi-box-arrow-in-right me-3"></i>Log In
+                                    </Link>
+                                </li>
+                                <li className="nav-item w-100 d-lg-none">
+                                    <Link className="nav-link" to="/register" onClick={() => setIsNavCollapsed(true)} style={{ fontWeight: 'bold', color: 'var(--primary-brown)' }}>
+                                        <i className="bi bi-person-plus me-3"></i>Register
                                     </Link>
                                 </li>
                                 <li className="nav-item ms-lg-2 d-none d-lg-flex align-items-center">

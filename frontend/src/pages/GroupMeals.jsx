@@ -113,7 +113,7 @@ const GroupMeals = () => {
                 </p>
             </div>
 
-            <div className="container px-4 px-lg-5">
+            <div className="container px-3 px-sm-4 px-lg-5">
                 {/* Search Bar */}
                 <div className="d-flex justify-content-center mb-5">
                     <div className="position-relative" style={{ width: '100%', maxWidth: '500px' }}>
@@ -161,7 +161,7 @@ const GroupMeals = () => {
                                                 <p className="card-text text-muted small mb-4" style={{ lineHeight: '1.5', flexGrow: 1 }}>{meal.description}</p>
                                                 <button 
                                                     className="btn text-white w-100 py-2 fw-bold" 
-                                                    style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '10px', fontSize: '0.9rem', transition: 'all 0.2s' }}
+                                                    style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '10px', fontSize: '0.9rem', transition: 'all 0.2s', minHeight: '44px' }}
                                                     onClick={() => handleAddMealToCart(meal)}
                                                 >
                                                     Add to Order

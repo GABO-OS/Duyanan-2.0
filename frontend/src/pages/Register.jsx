@@ -178,7 +178,7 @@ const Register = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '100px 20px 40px',
+                padding: '90px 14px 40px',
                 backgroundImage: `url(${duyananBg})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
@@ -245,7 +245,7 @@ const Register = () => {
                     <form onSubmit={handleSubmit}>
                         {/* First & Last Name */}
                         <div className="row g-2 mb-1">
-                            <div className="col-6 position-relative">
+                            <div className="col-12 col-sm-6 position-relative">
                                 <i className="bi bi-person position-absolute" style={iconPos()}></i>
                                 <input
                                     type="text"
@@ -261,7 +261,7 @@ const Register = () => {
                                     }}
                                 />
                             </div>
-                            <div className="col-6 position-relative">
+                            <div className="col-12 col-sm-6 position-relative">
                                 <i className="bi bi-person-fill position-absolute" style={iconPos()}></i>
                                 <input
                                     type="text"
@@ -345,7 +345,7 @@ const Register = () => {
 
                         {/* Password + Confirm */}
                         <div className="row g-2 mb-4">
-                            <div className="col-6 position-relative">
+                            <div className="col-12 col-sm-6 position-relative">
                                 <i className="bi bi-lock position-absolute" style={iconPos()}></i>
                                 <input
                                     type={showPassword ? 'text' : 'password'}
@@ -359,7 +359,7 @@ const Register = () => {
                                 />
                                 <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'} position-absolute`} onClick={() => setShowPassword(p => !p)} style={{ ...iconPos('right'), cursor: 'pointer' }}></i>
                             </div>
-                            <div className="col-6 position-relative">
+                            <div className="col-12 col-sm-6 position-relative">
                                 <i className="bi bi-lock-fill position-absolute" style={iconPos()}></i>
                                 <input
                                     type={showConfirm ? 'text' : 'password'}
@@ -380,7 +380,7 @@ const Register = () => {
                                 <i className="bi bi-exclamation-circle-fill"></i> {formError}
                             </div>
                         )}
-                        <button type="submit" className="btn-brand w-100" style={{ borderRadius: '50px', padding: '13px' }} disabled={isLoading}>
+                        <button type="submit" className="btn-brand w-100" style={{ borderRadius: '50px', padding: '13px', minHeight: '48px' }} disabled={isLoading}>
                             {isLoading ? <><span className="spinner-border spinner-border-sm me-2" role="status"></span>Creating Account...</> : 'Create Account'}
                         </button>
                     </form>
@@ -388,8 +388,8 @@ const Register = () => {
                     <div className="mt-4 text-center">
                         <p className="small mb-3" style={{ color: 'rgba(255,255,255,0.45)' }}>Or register with</p>
                         <div className="d-flex justify-content-center gap-3 mb-4">
-                            <button type="button" onClick={() => handleSocialLogin('Google')} className="social-login-btn social-google border-0 bg-transparent p-0"><i className="bi bi-google"></i></button>
-                            <button type="button" onClick={() => handleSocialLogin('Facebook')} className="social-login-btn social-facebook border-0 bg-transparent p-0"><i className="bi bi-facebook"></i></button>
+                            <button type="button" onClick={() => handleSocialLogin('Google')} className="social-login-btn social-google border-0" aria-label="Register with Google"><i className="bi bi-google"></i></button>
+                            <button type="button" onClick={() => handleSocialLogin('Facebook')} className="social-login-btn social-facebook border-0" aria-label="Register with Facebook"><i className="bi bi-facebook"></i></button>
                         </div>
                         <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: '16px' }}>
                             <span className="small" style={{ color: 'rgba(255,255,255,0.55)' }}>Already have an account? </span>

@@ -220,7 +220,7 @@ const Login = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '100px 20px 40px',
+                padding: '90px 14px 40px',
                 backgroundImage: `url(${duyananBg})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
@@ -274,12 +274,11 @@ const Login = () => {
 
                 {/* Right — Form Panel */}
                 <div
-                    className="flex-grow-1 d-flex flex-column justify-content-center"
+                    className="flex-grow-1 d-flex flex-column justify-content-center p-3 p-sm-4 p-md-5"
                     style={{
                         background: 'rgba(255,255,255,0.10)',
                         backdropFilter: 'blur(28px) saturate(200%)',
                         WebkitBackdropFilter: 'blur(28px) saturate(200%)',
-                        padding: '48px 44px',
                     }}
                 >
                     <h2 className="fw-bold mb-1" style={{ color: '#fff', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
@@ -370,7 +369,7 @@ const Login = () => {
                         <button
                             type="submit"
                             className="btn-brand w-100"
-                            style={{ borderRadius: '50px', padding: '13px' }}
+                            style={{ borderRadius: '50px', padding: '13px', minHeight: '48px' }}
                             disabled={isLoading}
                         >
                             {isLoading
@@ -384,8 +383,8 @@ const Login = () => {
                     <div className="mt-4 text-center">
                         <p className="small mb-3" style={{ color: 'rgba(255,255,255,0.45)' }}>Or continue with</p>
                         <div className="d-flex justify-content-center gap-3 mb-4">
-                            <button type="button" onClick={() => handleSocialLogin('Google')} className="social-login-btn social-google border-0 bg-transparent p-0"><i className="bi bi-google"></i></button>
-                            <button type="button" onClick={() => handleSocialLogin('Facebook')} className="social-login-btn social-facebook border-0 bg-transparent p-0"><i className="bi bi-facebook"></i></button>
+                            <button type="button" onClick={() => handleSocialLogin('Google')} className="social-login-btn social-google border-0" aria-label="Sign in with Google"><i className="bi bi-google"></i></button>
+                            <button type="button" onClick={() => handleSocialLogin('Facebook')} className="social-login-btn social-facebook border-0" aria-label="Sign in with Facebook"><i className="bi bi-facebook"></i></button>
                         </div>
                         <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: '16px' }}>
                             <span className="small" style={{ color: 'rgba(255,255,255,0.55)' }}>Don't have an account? </span>

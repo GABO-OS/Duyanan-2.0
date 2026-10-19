@@ -76,24 +76,29 @@
 
 /* Social Login Buttons */
 .social-login-btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: white;
   margin: 0 8px;
-  transition: transform 0.2s;
+  font-size: 1.15rem;
+  transition: transform 0.2s, opacity 0.2s;
+  cursor: pointer;
 }
 
 .social-login-btn:hover {
   transform: translateY(-2px);
   color: white;
+  opacity: 0.92;
 }
 
-.social-google   { background-color: #db4437; }
-.social-facebook { background-color: #4267B2; }
+.social-google   { background-color: #db4437 !important; }
+.social-facebook { background-color: #4267B2 !important; }
 
 /* Hide browser's native password reveal button (Edge / Chrome) */
 input[type="password"]::-ms-reveal,

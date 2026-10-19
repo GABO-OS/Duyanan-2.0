@@ -849,12 +849,12 @@ const AdminPanel = () => {
                 </div>
             </header>
 
-            <div className="d-flex flex-column flex-grow-1 position-relative" style={{ overflow: 'hidden' }}>
+            <div className="d-flex flex-column flex-grow-1 position-relative">
                 {/* ── Mobile Sidebar Drawer ── */}
                 {isSidebarOpen && (
                     <div 
-                        className="position-absolute top-0 start-0 w-100 h-100 bg-dark d-lg-none" 
-                        style={{ opacity: 0.5, zIndex: 1040 }}
+                        className="position-fixed top-0 start-0 w-100 h-100 bg-dark d-lg-none" 
+                        style={{ opacity: 0.5, zIndex: 1055, backdropFilter: 'blur(3px)' }}
                         onClick={() => setIsSidebarOpen(false)}
                     ></div>
                 )}
@@ -862,23 +862,30 @@ const AdminPanel = () => {
                 <style>{`
                     .admin-mobile-drawer {
                         width: 280px;
-                        z-index: 1045;
-                        position: absolute;
+                        max-width: 85vw;
+                        z-index: 1060;
+                        position: fixed;
                         top: 0;
                         bottom: 0;
                         left: 0;
-                        transition: transform 0.3s ease-in-out;
-                        height: 100%;
+                        height: 100dvh;
+                        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                         background: linear-gradient(to bottom, var(--accent-orange), var(--dark-brown));
                         color: #fff;
-                        box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+                        box-shadow: 4px 0 25px rgba(0,0,0,0.35);
+                        overflow-y: auto;
+                        padding-top: env(safe-area-inset-top, 0);
+                        padding-bottom: env(safe-area-inset-bottom, 0);
                     }
                     .nav-item-mobile {
-                        padding: 15px 25px;
+                        padding: 14px 22px;
                         border-left: 4px solid transparent;
                         transition: all 0.2s;
                         color: #555;
                         font-weight: 600;
+                        min-height: 48px;
+                        display: flex;
+                        align-items: center;
                     }
                     .nav-item-mobile.active {
                         background-color: rgba(211, 84, 0, 0.05);
@@ -940,22 +947,22 @@ const AdminPanel = () => {
                             {activeTab === 'dashboard' && (
                                 <div className="fade-in">
                                     <h3 className="fw-bold mb-4" style={{ color: 'var(--primary-brown)' }}>Dashboard Overview</h3>
-                                    <div className="row g-4 mb-5">
-                                        <div className="col-md-4">
+                                    <div className="row g-3 g-md-4 mb-4 mb-md-5">
+                                        <div className="col-12 col-md-4">
                                             <StatBox 
                                                 title="Total Sales" 
                                                 value={`₱${liveTotalSales.toLocaleString(undefined, {minimumFractionDigits: 2})}`} 
                                                 subtitle={`${growthPercentString} this week`} 
                                             />
                                         </div>
-                                        <div className="col-md-4">
+                                        <div className="col-12 col-md-4">
                                             <StatBox 
                                                 title="Total Orders" 
                                                 value={orders.length} 
                                                 subtitle={`${pendingOrders} pending, ${completedOrders} completed`} 
                                             />
                                         </div>
-                                        <div className="col-md-4">
+                                        <div className="col-12 col-md-4">
                                             <StatBox 
                                                 title="Pending Reservations" 
                                                 value={pendingRes} 
@@ -1019,78 +1026,80 @@ const AdminPanel = () => {
                             {activeTab === 'orders' && (
                                 <div className="fade-in">
                                     <h3 className="fw-bold mb-4" style={{ color: 'var(--primary-brown)' }}>Active Orders</h3>
-                                    <div className="row g-4 mb-5">
-                                        <div className="col-md-4"><StatBox title="Pending" value={pendingOrders} /></div>
-                                        <div className="col-md-4"><StatBox title="Preparing" value={preparingOrders} /></div>
-                                        <div className="col-md-4"><StatBox title="Completed" value={completedOrders} /></div>
+                                    <div className="row g-3 g-md-4 mb-4 mb-md-5">
+                                        <div className="col-12 col-sm-4"><StatBox title="Pending" value={pendingOrders} /></div>
+                                        <div className="col-12 col-sm-4"><StatBox title="Preparing" value={preparingOrders} /></div>
+                                        <div className="col-12 col-sm-4"><StatBox title="Completed" value={completedOrders} /></div>
                                     </div>
 
                                     <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-                                        <table className="table table-hover align-middle mb-0">
-                                            <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
-                                                <tr>
-                                                    <th className="py-3 px-4 border-0 text-center">Order ID</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Customer Info</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Items</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Timestamp</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Price</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Status</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {orders.map(o => (
-                                                    <tr key={o.id}>
-                                                        <td className="px-4 fw-bold text-center">#{o.id}</td>
-                                                        <td className="px-4 text-start">
-                                                            <div className="fw-bold text-dark">{o.user?.firstName} {o.user?.lastName}</div>
-                                                            <div className="small text-muted" style={{ lineHeight: '1.2' }}><i className="bi bi-telephone-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.phone || 'N/A'}</div>
-                                                            {(o.orderType === 'DINE_IN' || o.reservation) ? (
-                                                                <div className="mt-1">
-                                                                    <span className="badge bg-warning text-dark border" style={{ fontSize: '0.72rem' }}>
-                                                                        🍽️ Dine-In Pre-Order {o.reservation?.id ? `(Res #${o.reservation.id})` : ''}
-                                                                    </span>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="small text-muted text-truncate" style={{ maxWidth: '200px', lineHeight: '1.2' }} title={o.user?.address || 'N/A'}><i className="bi bi-geo-alt-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.address || 'N/A'}</div>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 text-center">
-                                                            <div className="bg-light p-2 rounded mx-auto text-start" style={{ fontSize: '0.8rem', width: 'max-content' }}>
-                                                                {o.items?.map((item, idx) => (
-                                                                    <div key={idx} className="text-truncate" style={{ maxWidth: '200px' }} title={`${item.quantity}x ${item.product?.name} ${item.variant ? `(${item.variant})` : ''}`}>
-                                                                        {item.quantity}x {item.product?.name} {item.variant ? <span className="fst-italic text-primary">({item.variant})</span> : ''}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 text-center">
-                                                            <div className="small">{new Date(o.orderDate || Date.now()).toLocaleString()}</div>
-                                                        </td>
-                                                        <td className="px-4 fw-bold text-center">₱{o.totalAmount?.toFixed(2)}</td>
-                                                        <td className="px-4 text-center">
-                                                            <span className={`badge rounded-pill ${o.status === 'PENDING' ? 'bg-warning text-dark' : o.status === 'COMPLETED' ? 'bg-success' : o.status === 'CANCELLED' ? 'bg-danger' : 'bg-info text-dark'}`}>
-                                                                {o.status}
-                                                            </span>
-                                                            {o.status === 'CANCELLED' && o.cancellationReason && (
-                                                                <div className="mt-1" style={{ fontSize: '0.72rem', color: '#d33', fontStyle: 'italic', maxWidth: '180px', margin: '4px auto 0' }}>
-                                                                    <i className="bi bi-info-circle me-1"></i>{o.cancellationReason}
-                                                                </div>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 text-center">
-                                                            <select className="form-select form-select-sm d-inline-block w-auto" value={o.status} onChange={(e) => handleUpdateStatus('orders', o.id, e.target.value)}>
-                                                                <option value="PENDING">Pending</option>
-                                                                <option value="PREPARING">Preparing</option>
-                                                                <option value="COMPLETED">Completed</option>
-                                                                <option value="CANCELLED">Cancelled</option>
-                                                            </select>
-                                                        </td>
+                                        <div className="table-responsive">
+                                            <table className="table table-hover align-middle mb-0">
+                                                <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
+                                                    <tr>
+                                                        <th className="py-3 px-4 border-0 text-center">Order ID</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Customer Info</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Items</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Timestamp</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Price</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Status</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Action</th>
                                                     </tr>
-                                                ))}
-                                                {orders.length === 0 && <tr><td colSpan="6" className="text-center py-5">No active orders.</td></tr>}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody>
+                                                    {orders.map(o => (
+                                                        <tr key={o.id}>
+                                                            <td className="px-4 fw-bold text-center">#{o.id}</td>
+                                                            <td className="px-4 text-start">
+                                                                <div className="fw-bold text-dark">{o.user?.firstName} {o.user?.lastName}</div>
+                                                                <div className="small text-muted" style={{ lineHeight: '1.2' }}><i className="bi bi-telephone-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.phone || 'N/A'}</div>
+                                                                {(o.orderType === 'DINE_IN' || o.reservation) ? (
+                                                                    <div className="mt-1">
+                                                                        <span className="badge bg-warning text-dark border" style={{ fontSize: '0.72rem' }}>
+                                                                            🍽️ Dine-In Pre-Order {o.reservation?.id ? `(Res #${o.reservation.id})` : ''}
+                                                                        </span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="small text-muted text-truncate" style={{ maxWidth: '200px', lineHeight: '1.2' }} title={o.user?.address || 'N/A'}><i className="bi bi-geo-alt-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.address || 'N/A'}</div>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 text-center">
+                                                                <div className="bg-light p-2 rounded mx-auto text-start" style={{ fontSize: '0.8rem', width: 'max-content' }}>
+                                                                    {o.items?.map((item, idx) => (
+                                                                        <div key={idx} className="text-truncate" style={{ maxWidth: '200px' }} title={`${item.quantity}x ${item.product?.name} ${item.variant ? `(${item.variant})` : ''}`}>
+                                                                            {item.quantity}x {item.product?.name} {item.variant ? <span className="fst-italic text-primary">({item.variant})</span> : ''}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 text-center">
+                                                                <div className="small">{new Date(o.orderDate || Date.now()).toLocaleString()}</div>
+                                                            </td>
+                                                            <td className="px-4 fw-bold text-center">₱{o.totalAmount?.toFixed(2)}</td>
+                                                            <td className="px-4 text-center">
+                                                                <span className={`badge rounded-pill ${o.status === 'PENDING' ? 'bg-warning text-dark' : o.status === 'COMPLETED' ? 'bg-success' : o.status === 'CANCELLED' ? 'bg-danger' : 'bg-info text-dark'}`}>
+                                                                    {o.status}
+                                                                </span>
+                                                                {o.status === 'CANCELLED' && o.cancellationReason && (
+                                                                    <div className="mt-1" style={{ fontSize: '0.72rem', color: '#d33', fontStyle: 'italic', maxWidth: '180px', margin: '4px auto 0' }}>
+                                                                        <i className="bi bi-info-circle me-1"></i>{o.cancellationReason}
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 text-center">
+                                                                <select className="form-select form-select-sm d-inline-block w-auto" value={o.status} onChange={(e) => handleUpdateStatus('orders', o.id, e.target.value)}>
+                                                                    <option value="PENDING">Pending</option>
+                                                                    <option value="PREPARING">Preparing</option>
+                                                                    <option value="COMPLETED">Completed</option>
+                                                                    <option value="CANCELLED">Cancelled</option>
+                                                                </select>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {orders.length === 0 && <tr><td colSpan="7" className="text-center py-5">No active orders.</td></tr>}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -1099,105 +1108,107 @@ const AdminPanel = () => {
                             {activeTab === 'reservations' && (
                                 <div className="fade-in">
                                     <h3 className="fw-bold mb-4" style={{ color: 'var(--primary-brown)' }}>Reservations Management</h3>
-                                    <div className="row g-4 mb-5">
-                                        <div className="col-md-3"><StatBox title="Pending" value={pendingRes} /></div>
-                                        <div className="col-md-3"><StatBox title="Confirmed" value={confirmedRes} /></div>
-                                        <div className="col-md-3"><StatBox title="Completed" value={completedRes} /></div>
-                                        <div className="col-md-3"><StatBox title="Cancelled" value={cancelledRes} /></div>
+                                    <div className="row g-3 g-md-4 mb-4 mb-md-5">
+                                        <div className="col-6 col-md-3"><StatBox title="Pending" value={pendingRes} /></div>
+                                        <div className="col-6 col-md-3"><StatBox title="Confirmed" value={confirmedRes} /></div>
+                                        <div className="col-6 col-md-3"><StatBox title="Completed" value={completedRes} /></div>
+                                        <div className="col-6 col-md-3"><StatBox title="Cancelled" value={cancelledRes} /></div>
                                     </div>
 
                                     <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-                                        <table className="table table-hover align-middle mb-0">
-                                            <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
-                                                <tr>
-                                                    <th className="py-3 px-4 border-0 text-center">Res ID</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Name</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Date & Time</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Guests</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Seating</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Event Type</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Status</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {reservations.map(r => (
-                                                    <tr key={r.id}>
-                                                        <td className="px-4 fw-bold text-center">#{r.id}</td>
-                                                        <td className="px-4 text-center">
-                                                            <div className="fw-bold text-dark">{r.guestName}</div>
-                                                            {(() => {
-                                                                const linked = (r.orders && r.orders.length > 0) 
-                                                                    ? r.orders 
-                                                                    : orders.filter(o => o.reservation && String(o.reservation.id) === String(r.id));
-                                                                if (!linked || linked.length === 0) return null;
-                                                                const totalPreOrder = linked.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
-                                                                return (
-                                                                    <div className="mt-1">
-                                                                        <span className="badge bg-warning text-dark border" style={{ fontSize: '0.72rem' }} title={linked.map(o => o.items?.map(i => `${i.quantity}x ${i.product?.name}`).join(', ')).join(' | ')}>
-                                                                            🍽️ Pre-Order: ₱{totalPreOrder.toFixed(2)}
-                                                                        </span>
-                                                                    </div>
-                                                                );
-                                                            })()}
-                                                        </td>
-                                                        <td className="px-4 text-center">{r.reservationDate} <span className="text-muted small">{formatTime12Hour(r.reservationTime)}</span></td>
-                                                        <td className="px-4 text-center">{r.numberOfGuests}</td>
-                                                        <td className="px-4 text-center">
-                                                            <span className="badge rounded-pill" style={{ 
-                                                                backgroundColor: r.seatingType?.toLowerCase() === 'indoor' ? 'rgba(41, 128, 185, 0.08)' : 'rgba(39, 174, 96, 0.08)',
-                                                                color: r.seatingType?.toLowerCase() === 'indoor' ? '#2980b9' : '#27ae60',
-                                                                fontSize: '0.72rem',
-                                                                fontWeight: 600,
-                                                                padding: '4px 10px'
-                                                            }}>
-                                                                {r.seatingType ? (r.seatingType.toLowerCase() === 'indoor' ? '🏠 Indoor' : '🌿 Outdoor') : 'N/A'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 text-center">
-                                                            <span className="badge rounded-pill" style={{ 
-                                                                backgroundColor: 'rgba(139, 58, 15, 0.08)',
-                                                                color: 'var(--primary-brown)',
-                                                                fontSize: '0.72rem',
-                                                                fontWeight: 600,
-                                                                padding: '4px 10px'
-                                                            }}>
-                                                                {r.eventType || 'Casual Dining 🍽️'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 text-center">
-                                                            <span className={`badge rounded-pill ${
-                                                                r.status === 'PENDING' ? 'bg-warning text-dark' : 
-                                                                r.status === 'CONFIRMED' ? 'bg-success' : 
-                                                                r.status === 'COMPLETED' ? 'bg-info text-dark' : 
-                                                                'bg-danger'
-                                                            }`}>
-                                                                {r.status}
-                                                            </span>
-                                                            {r.status === 'CONFIRMED' && (
-                                                                <div className="mt-1 text-muted" style={{ fontSize: '0.72rem' }}>
-                                                                    <i className="bi bi-lock-fill me-1"></i>Pre-order closed
-                                                                </div>
-                                                            )}
-                                                            {r.status === 'CANCELLED' && r.cancellationReason && (
-                                                                <div className="mt-1" style={{ fontSize: '0.72rem', color: '#d33', fontStyle: 'italic', maxWidth: '180px', margin: '4px auto 0' }}>
-                                                                    <i className="bi bi-info-circle me-1"></i>{r.cancellationReason}
-                                                                </div>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 text-center">
-                                                            <select className="form-select form-select-sm d-inline-block w-auto" value={r.status} onChange={(e) => handleUpdateStatus('reservations', r.id, e.target.value)}>
-                                                                <option value="PENDING">Pending</option>
-                                                                <option value="CONFIRMED">Confirm</option>
-                                                                <option value="COMPLETED">Completed</option>
-                                                                <option value="CANCELLED">Cancel</option>
-                                                            </select>
-                                                        </td>
+                                        <div className="table-responsive">
+                                            <table className="table table-hover align-middle mb-0">
+                                                <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
+                                                    <tr>
+                                                        <th className="py-3 px-4 border-0 text-center">Res ID</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Name</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Date & Time</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Guests</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Seating</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Event Type</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Status</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Action</th>
                                                     </tr>
-                                                ))}
-                                                {reservations.length === 0 && <tr><td colSpan="8" className="text-center py-5">No reservations.</td></tr>}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody>
+                                                    {reservations.map(r => (
+                                                        <tr key={r.id}>
+                                                            <td className="px-4 fw-bold text-center">#{r.id}</td>
+                                                            <td className="px-4 text-center">
+                                                                <div className="fw-bold text-dark">{r.guestName}</div>
+                                                                {(() => {
+                                                                    const linked = (r.orders && r.orders.length > 0) 
+                                                                        ? r.orders 
+                                                                        : orders.filter(o => o.reservation && String(o.reservation.id) === String(r.id));
+                                                                    if (!linked || linked.length === 0) return null;
+                                                                    const totalPreOrder = linked.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+                                                                    return (
+                                                                        <div className="mt-1">
+                                                                            <span className="badge bg-warning text-dark border" style={{ fontSize: '0.72rem' }} title={linked.map(o => o.items?.map(i => `${i.quantity}x ${i.product?.name}`).join(', ')).join(' | ')}>
+                                                                                🍽️ Pre-Order: ₱{totalPreOrder.toFixed(2)}
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                })()}
+                                                            </td>
+                                                            <td className="px-4 text-center">{r.reservationDate} <span className="text-muted small">{formatTime12Hour(r.reservationTime)}</span></td>
+                                                            <td className="px-4 text-center">{r.numberOfGuests}</td>
+                                                            <td className="px-4 text-center">
+                                                                <span className="badge rounded-pill" style={{ 
+                                                                    backgroundColor: r.seatingType?.toLowerCase() === 'indoor' ? 'rgba(41, 128, 185, 0.08)' : 'rgba(39, 174, 96, 0.08)',
+                                                                    color: r.seatingType?.toLowerCase() === 'indoor' ? '#2980b9' : '#27ae60',
+                                                                    fontSize: '0.72rem',
+                                                                    fontWeight: 600,
+                                                                    padding: '4px 10px'
+                                                                }}>
+                                                                    {r.seatingType ? (r.seatingType.toLowerCase() === 'indoor' ? '🏠 Indoor' : '🌿 Outdoor') : 'N/A'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 text-center">
+                                                                <span className="badge rounded-pill" style={{ 
+                                                                    backgroundColor: 'rgba(139, 58, 15, 0.08)',
+                                                                    color: 'var(--primary-brown)',
+                                                                    fontSize: '0.72rem',
+                                                                    fontWeight: 600,
+                                                                    padding: '4px 10px'
+                                                                }}>
+                                                                    {r.eventType || 'Casual Dining 🍽️'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 text-center">
+                                                                <span className={`badge rounded-pill ${
+                                                                    r.status === 'PENDING' ? 'bg-warning text-dark' : 
+                                                                    r.status === 'CONFIRMED' ? 'bg-success' : 
+                                                                    r.status === 'COMPLETED' ? 'bg-info text-dark' : 
+                                                                    'bg-danger'
+                                                                }`}>
+                                                                    {r.status}
+                                                                </span>
+                                                                {r.status === 'CONFIRMED' && (
+                                                                    <div className="mt-1 text-muted" style={{ fontSize: '0.72rem' }}>
+                                                                        <i className="bi bi-lock-fill me-1"></i>Pre-order closed
+                                                                    </div>
+                                                                )}
+                                                                {r.status === 'CANCELLED' && r.cancellationReason && (
+                                                                    <div className="mt-1" style={{ fontSize: '0.72rem', color: '#d33', fontStyle: 'italic', maxWidth: '180px', margin: '4px auto 0' }}>
+                                                                        <i className="bi bi-info-circle me-1"></i>{r.cancellationReason}
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 text-center">
+                                                                <select className="form-select form-select-sm d-inline-block w-auto" value={r.status} onChange={(e) => handleUpdateStatus('reservations', r.id, e.target.value)}>
+                                                                    <option value="PENDING">Pending</option>
+                                                                    <option value="CONFIRMED">Confirm</option>
+                                                                    <option value="COMPLETED">Completed</option>
+                                                                    <option value="CANCELLED">Cancel</option>
+                                                                </select>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {reservations.length === 0 && <tr><td colSpan="8" className="text-center py-5">No reservations.</td></tr>}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -2063,31 +2074,33 @@ const AdminPanel = () => {
                                 <div className="fade-in">
                                     <h3 className="fw-bold mb-4" style={{ color: 'var(--primary-brown)' }}>Registered Users</h3>
                                     <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-                                        <table className="table table-hover align-middle mb-0">
-                                            <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
-                                                <tr>
-                                                    <th className="py-3 px-4 border-0 text-center">Customer ID</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Customer Name</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Contact No</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Address</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Role</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {users.filter(u => u.role !== 'ADMIN').map(u => (
-                                                    <tr key={u.id}>
-                                                        <td className="px-4 text-muted fw-bold text-center">#{u.id}</td>
-                                                        <td className="px-4 fw-bold text-dark text-center">{u.firstName} {u.lastName}</td>
-                                                        <td className="px-4 text-muted text-center">{u.phone || 'N/A'}</td>
-                                                        <td className="px-4 text-muted text-truncate text-center" style={{ maxWidth: '250px' }} title={u.address || 'N/A'}>{u.address || 'N/A'}</td>
-                                                        <td className="px-4 text-center">
-                                                            <span className={`badge rounded-pill ${u.role === 'ADMIN' ? 'bg-danger' : 'bg-primary'}`}>{u.role}</span>
-                                                        </td>
+                                        <div className="table-responsive">
+                                            <table className="table table-hover align-middle mb-0">
+                                                <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
+                                                    <tr>
+                                                        <th className="py-3 px-4 border-0 text-center">Customer ID</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Customer Name</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Contact No</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Address</th>
+                                                        <th className="py-3 px-4 border-0 text-center">Role</th>
                                                     </tr>
-                                                ))}
-                                                {users.filter(u => u.role !== 'ADMIN').length === 0 && <tr><td colSpan="5" className="text-center py-5">No registered customers found.</td></tr>}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody>
+                                                    {users.filter(u => u.role !== 'ADMIN').map(u => (
+                                                        <tr key={u.id}>
+                                                            <td className="px-4 text-muted fw-bold text-center">#{u.id}</td>
+                                                            <td className="px-4 fw-bold text-dark text-center">{u.firstName} {u.lastName}</td>
+                                                            <td className="px-4 text-muted text-center">{u.phone || 'N/A'}</td>
+                                                            <td className="px-4 text-muted text-truncate text-center" style={{ maxWidth: '250px' }} title={u.address || 'N/A'}>{u.address || 'N/A'}</td>
+                                                            <td className="px-4 text-center">
+                                                                <span className={`badge rounded-pill ${u.role === 'ADMIN' ? 'bg-danger' : 'bg-primary'}`}>{u.role}</span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {users.filter(u => u.role !== 'ADMIN').length === 0 && <tr><td colSpan="5" className="text-center py-5">No registered customers found.</td></tr>}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             )}
