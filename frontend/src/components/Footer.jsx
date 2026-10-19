@@ -13,21 +13,22 @@ const Footer = () => {
                     <div className="col-lg-6 col-md-12 mb-4 mb-lg-0 d-flex flex-column justify-content-center">
                         <div className="d-flex flex-column" style={{ lineHeight: 0.9 }}>
                             <span style={{ 
-                                fontSize: 'clamp(6rem, 14vw, 12rem)', 
+                                fontSize: 'clamp(2.8rem, 11vw, 12rem)', 
                                 fontWeight: 900, 
                                 letterSpacing: '-0.05em', 
                                 color: 'var(--dark-brown)',
-                                fontFamily: "'Jost', sans-serif"
+                                fontFamily: "'Jost', sans-serif",
+                                wordBreak: 'break-word'
                             }}>
                                 Duyanan
                             </span>
                             <span style={{ 
-                                fontSize: 'clamp(1.5rem, 3.8vw, 3rem)', 
+                                fontSize: 'clamp(1rem, 3.2vw, 3rem)', 
                                 fontWeight: 700, 
-                                letterSpacing: '0.62em', 
+                                letterSpacing: 'clamp(0.25em, 1.8vw, 0.62em)', 
                                 textTransform: 'uppercase', 
                                 color: 'var(--accent-orange)',
-                                marginTop: '20px',
+                                marginTop: '14px',
                                 fontFamily: "'Jost', sans-serif"
                             }}>
                                 Restaurant

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Swal from 'sweetalert2';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import duyananBg from '../assets/img/duyanan_bg.jpg';
+import duyananBg from '../assets/img/duyanan_bg.webp';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -59,6 +59,8 @@ const Login = () => {
         });
 
         if (email) {
+            const cleanEmail = email.trim().toLowerCase();
+
             Swal.fire({
                 title: 'Sending...',
                 text: 'Please wait while we process your request.',
@@ -68,12 +70,28 @@ const Login = () => {
                 color: '#fff',
             });
 
+            // If the server is sleeping on Render free tier, notify user after 3.5s
+            const warmUpTimer = setTimeout(() => {
+                if (Swal.isVisible()) {
+                    Swal.update({
+                        text: "☕ Duyanan's server is waking up from sleep... Please hold on a moment!",
+                    });
+                }
+            }, 3500);
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000);
+
             try {
                 const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email }),
+                    body: JSON.stringify({ email: cleanEmail }),
+                    signal: controller.signal,
                 });
+                clearTimeout(warmUpTimer);
+                clearTimeout(timeoutId);
+
                 const data = await response.json();
 
                 if (response.ok) {
@@ -96,10 +114,16 @@ const Login = () => {
                     });
                 }
             } catch (err) {
+                clearTimeout(warmUpTimer);
+                clearTimeout(timeoutId);
+
+                const isTimeout = err.name === 'AbortError';
                 Swal.fire({
                     icon: 'error',
-                    title: 'Connection Error',
-                    text: 'Could not connect to the server. Please try again later.',
+                    title: isTimeout ? 'Server Wake-Up Timeout' : 'Connection Error',
+                    text: isTimeout 
+                        ? 'The cloud server took longer than 20 seconds to respond. Please give it a few moments to finish starting and try again.'
+                        : 'Could not connect to the server. Please check your internet connection and try again.',
                     confirmButtonColor: '#c2703a',
                     background: '#1a1a2e',
                     color: '#fff',
@@ -196,7 +220,7 @@ const Login = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '100px 20px 40px',
+                padding: '90px 14px 40px',
                 backgroundImage: `url(${duyananBg})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
@@ -250,12 +274,11 @@ const Login = () => {
 
                 {/* Right — Form Panel */}
                 <div
-                    className="flex-grow-1 d-flex flex-column justify-content-center"
+                    className="flex-grow-1 d-flex flex-column justify-content-center p-3 p-sm-4 p-md-5"
                     style={{
                         background: 'rgba(255,255,255,0.10)',
                         backdropFilter: 'blur(28px) saturate(200%)',
                         WebkitBackdropFilter: 'blur(28px) saturate(200%)',
-                        padding: '48px 44px',
                     }}
                 >
                     <h2 className="fw-bold mb-1" style={{ color: '#fff', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
@@ -346,7 +369,7 @@ const Login = () => {
                         <button
                             type="submit"
                             className="btn-brand w-100"
-                            style={{ borderRadius: '50px', padding: '13px' }}
+                            style={{ borderRadius: '50px', padding: '13px', minHeight: '48px' }}
                             disabled={isLoading}
                         >
                             {isLoading
@@ -360,8 +383,8 @@ const Login = () => {
                     <div className="mt-4 text-center">
                         <p className="small mb-3" style={{ color: 'rgba(255,255,255,0.45)' }}>Or continue with</p>
                         <div className="d-flex justify-content-center gap-3 mb-4">
-                            <button type="button" onClick={() => handleSocialLogin('Google')} className="social-login-btn social-google border-0 bg-transparent p-0"><i className="bi bi-google"></i></button>
-                            <button type="button" onClick={() => handleSocialLogin('Facebook')} className="social-login-btn social-facebook border-0 bg-transparent p-0"><i className="bi bi-facebook"></i></button>
+                            <button type="button" onClick={() => handleSocialLogin('Google')} className="social-login-btn social-google border-0" aria-label="Sign in with Google"><i className="bi bi-google"></i></button>
+                            <button type="button" onClick={() => handleSocialLogin('Facebook')} className="social-login-btn social-facebook border-0" aria-label="Sign in with Facebook"><i className="bi bi-facebook"></i></button>
                         </div>
                         <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: '16px' }}>
                             <span className="small" style={{ color: 'rgba(255,255,255,0.55)' }}>Don't have an account? </span>

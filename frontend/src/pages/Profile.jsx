@@ -662,7 +662,7 @@ const Profile = () => {
                                             )}
 
                                             {order.status === 'COMPLETED' && (
-                                                <div className="mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
+                                                <div className="mt-3 pt-3 border-top d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2">
                                                     {order.feedback ? (
                                                         <div className="small">
                                                             <span className="text-muted fw-bold me-2">Your Review:</span>
@@ -683,8 +683,8 @@ const Profile = () => {
                                                             <span className="text-muted small"><i className="bi bi-chat-left-heart me-1"></i>How was your food?</span>
                                                             <button 
                                                                 onClick={() => handleOpenFeedbackModal(order)} 
-                                                                className="btn btn-sm text-white px-3 fw-bold shadow-sm" 
-                                                                style={{ backgroundColor: 'var(--primary-brown)', borderRadius: '8px', fontSize: '0.8rem' }}
+                                                                className="btn btn-sm text-white px-3 py-2 fw-bold shadow-sm" 
+                                                                style={{ backgroundColor: 'var(--primary-brown)', borderRadius: '8px', fontSize: '0.85rem', minHeight: '40px' }}
                                                             >
                                                                 Leave Feedback
                                                             </button>
@@ -695,7 +695,7 @@ const Profile = () => {
 
                                             {/* ── Cancel Order Button (PENDING only) ── */}
                                             {order.status === 'PENDING' && (
-                                                <div className="mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
+                                                <div className="mt-3 pt-3 border-top d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2">
                                                     <span className="small text-muted">
                                                         <i className="bi bi-info-circle me-1"></i>
                                                         You can cancel this order while it's still pending.
@@ -703,7 +703,7 @@ const Profile = () => {
                                                     <button
                                                         onClick={() => handleCancelOrder(order.id)}
                                                         className="btn btn-sm px-3 py-2 fw-bold"
-                                                        style={{ backgroundColor: '#fdf0f0', color: '#e74c3c', border: '1.5px solid #f5c6cb', borderRadius: '8px', fontSize: '0.82rem' }}
+                                                        style={{ backgroundColor: '#fdf0f0', color: '#e74c3c', border: '1.5px solid #f5c6cb', borderRadius: '8px', fontSize: '0.85rem', minHeight: '40px' }}
                                                     >
                                                         <i className="bi bi-x-circle me-1"></i> Cancel Order
                                                     </button>
@@ -852,19 +852,19 @@ const Profile = () => {
                                          <div className="card-body px-4 py-3">
                                              <div className="res-info-box p-3 mt-2">
                                                  <div className="row g-3">
-                                                     <div className="col-md-3 col-sm-6 mb-3 mb-md-0">
+                                                     <div className="col-6 col-md-3 mb-2 mb-md-0">
                                                          <div className="res-detail-label mb-1">
                                                              <i className="bi bi-person-fill me-1" style={{ color: 'var(--accent-orange)' }}></i> Guest Name
                                                          </div>
                                                          <div className="fw-bold text-dark" style={{ fontSize: '0.92rem' }}>{res.guestName}</div>
                                                      </div>
-                                                     <div className="col-md-3 col-sm-6 mb-3 mb-md-0">
+                                                     <div className="col-6 col-md-3 mb-2 mb-md-0">
                                                          <div className="res-detail-label mb-1">
                                                              <i className="bi bi-people-fill me-1" style={{ color: 'var(--accent-orange)' }}></i> Party Size
                                                          </div>
                                                          <div className="fw-bold text-dark" style={{ fontSize: '0.92rem' }}>{res.numberOfGuests} Guests</div>
                                                      </div>
-                                                     <div className="col-md-3 col-sm-6 mb-3 mb-md-0">
+                                                     <div className="col-6 col-md-3 mb-2 mb-md-0">
                                                          <div className="res-detail-label mb-1">
                                                              <i className="bi bi-geo-alt-fill me-1" style={{ color: 'var(--accent-orange)' }}></i> Seating Type
                                                          </div>
@@ -880,7 +880,7 @@ const Profile = () => {
                                                              )}
                                                          </div>
                                                      </div>
-                                                     <div className="col-md-3 col-sm-6">
+                                                     <div className="col-6 col-md-3">
                                                          <div className="res-detail-label mb-1">
                                                              <i className="bi bi-tag-fill me-1" style={{ color: 'var(--accent-orange)' }}></i> Event Type
                                                          </div>
@@ -942,8 +942,8 @@ const Profile = () => {
                                                      </div>
                                                  </div>
                                              )}
- 
-                                             <div className="d-flex justify-content-between align-items-center mt-3 gap-2 flex-wrap">
+
+                                             <div className="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center mt-3 gap-2 flex-wrap">
                                                 <div>
                                                     {res.status === 'PENDING' ? (
                                                         <button
@@ -951,14 +951,14 @@ const Profile = () => {
                                                                 setReservationId(res.id.toString());
                                                                 navigate('/menu');
                                                             }}
-                                                            className="btn btn-sm text-white fw-bold shadow-sm"
-                                                            style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '8px', fontSize: '0.82rem' }}
+                                                            className="btn btn-sm text-white fw-bold shadow-sm w-100 w-sm-auto"
+                                                            style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '8px', fontSize: '0.85rem', minHeight: '40px' }}
                                                         >
                                                             <i className="bi bi-cart-plus me-1"></i> Pre-Order Food
                                                         </button>
                                                     ) : res.status === 'CONFIRMED' ? (
                                                         <span 
-                                                            className="badge px-2.5 py-1.5 fw-semibold" 
+                                                            className="badge px-2.5 py-1.5 fw-semibold d-inline-block" 
                                                             style={{ 
                                                                 backgroundColor: '#f8f9fa', 
                                                                 color: '#6c757d', 
@@ -973,18 +973,18 @@ const Profile = () => {
                                                     ) : null}
                                                 </div>
                                                  {res.status === 'PENDING' && (
-                                                     <div className="d-flex gap-2">
+                                                     <div className="d-flex flex-wrap gap-2">
                                                          <button 
                                                              onClick={() => handleCancelReservation(res.id)} 
-                                                             className="btn btn-sm px-3 py-2 fw-bold shadow-sm" 
-                                                             style={{ fontSize: '0.85rem', backgroundColor: '#fdf0f0', color: '#e74c3c', border: '1.5px solid #f5c6cb', borderRadius: '8px' }}
+                                                             className="btn btn-sm px-3 py-2 fw-bold shadow-sm flex-grow-1 flex-sm-grow-0" 
+                                                             style={{ fontSize: '0.85rem', backgroundColor: '#fdf0f0', color: '#e74c3c', border: '1.5px solid #f5c6cb', borderRadius: '8px', minHeight: '40px' }}
                                                          >
                                                              <i className="bi bi-x-circle me-1"></i> Cancel
                                                          </button>
                                                          <button 
                                                              onClick={() => handleOpenEditReservation(res)} 
-                                                             className="btn btn-sm btn-edit-reservation text-white px-3 py-2 fw-bold shadow-sm" 
-                                                             style={{ fontSize: '0.85rem' }}
+                                                             className="btn btn-sm btn-edit-reservation text-white px-3 py-2 fw-bold shadow-sm flex-grow-1 flex-sm-grow-0" 
+                                                             style={{ fontSize: '0.85rem', minHeight: '40px' }}
                                                          >
                                                              <i className="bi bi-pencil-square me-1"></i> Edit Details
                                                          </button>
@@ -1021,14 +1021,68 @@ const Profile = () => {
     ).length;
 
     return (
-        <div className="container" style={{ marginTop: 'calc(var(--nav-height) + 40px)', marginBottom: '60px', minHeight: '60vh' }}>
-            <div className="mb-4">
-                <h3 className="fw-bold mb-0" style={{ color: 'var(--text-dark)' }}>Account Management</h3>
+        <div className="container px-3 px-sm-4" style={{ marginTop: 'calc(var(--nav-height) + 24px)', marginBottom: '60px', minHeight: '60vh' }}>
+            <div className="mb-3 mb-md-4">
+                <h3 className="fw-bold mb-0" style={{ color: 'var(--text-dark)', fontSize: 'clamp(1.4rem, 4vw, 1.85rem)' }}>Account Management</h3>
             </div>
 
-            <div className="row g-5">
-                {/* Sidebar Navigation */}
-                <div className="col-12 col-md-3">
+            {/* Mobile Horizontal Pill Navigation (< md) */}
+            <div className="d-md-none mb-3">
+                <div className="d-flex overflow-x-auto no-scrollbar gap-2 pb-2">
+                    <button 
+                        className={`btn btn-sm text-nowrap px-3 py-2 fw-bold rounded-pill ${activeTab === 'profile' ? 'text-white shadow-sm' : 'btn-outline-secondary'}`} 
+                        style={activeTab === 'profile' ? { backgroundColor: 'var(--accent-orange)', borderColor: 'var(--accent-orange)' } : { borderRadius: '20px' }}
+                        onClick={() => setActiveTab('profile')}
+                    >
+                        <i className="bi bi-person me-1"></i> Profile
+                    </button>
+                    <button 
+                        className={`btn btn-sm text-nowrap px-3 py-2 fw-bold rounded-pill position-relative ${activeTab === 'orders' ? 'text-white shadow-sm' : 'btn-outline-secondary'}`} 
+                        style={activeTab === 'orders' ? { backgroundColor: 'var(--accent-orange)', borderColor: 'var(--accent-orange)' } : { borderRadius: '20px' }}
+                        onClick={() => setActiveTab('orders')}
+                    >
+                        <i className="bi bi-receipt me-1"></i> Orders
+                        {pendingOrdersCount > 0 && (
+                            <span className="badge bg-danger ms-1.5 rounded-pill">{pendingOrdersCount}</span>
+                        )}
+                    </button>
+                    <button 
+                        className={`btn btn-sm text-nowrap px-3 py-2 fw-bold rounded-pill position-relative ${activeTab === 'reservations' ? 'text-white shadow-sm' : 'btn-outline-secondary'}`} 
+                        style={activeTab === 'reservations' ? { backgroundColor: 'var(--accent-orange)', borderColor: 'var(--accent-orange)' } : { borderRadius: '20px' }}
+                        onClick={() => setActiveTab('reservations')}
+                    >
+                        <i className="bi bi-calendar-event me-1"></i> Reservations
+                        {pendingReservationsCount > 0 && (
+                            <span className="badge bg-danger ms-1.5 rounded-pill">{pendingReservationsCount}</span>
+                        )}
+                    </button>
+                    <button 
+                        className={`btn btn-sm text-nowrap px-3 py-2 fw-bold rounded-pill ${activeTab === 'payment' ? 'text-white shadow-sm' : 'btn-outline-secondary'}`} 
+                        style={activeTab === 'payment' ? { backgroundColor: 'var(--accent-orange)', borderColor: 'var(--accent-orange)' } : { borderRadius: '20px' }}
+                        onClick={() => setActiveTab('payment')}
+                    >
+                        <i className="bi bi-credit-card me-1"></i> Payment
+                    </button>
+                    <button 
+                        className={`btn btn-sm text-nowrap px-3 py-2 fw-bold rounded-pill ${activeTab === 'communications' ? 'text-white shadow-sm' : 'btn-outline-secondary'}`} 
+                        style={activeTab === 'communications' ? { backgroundColor: 'var(--accent-orange)', borderColor: 'var(--accent-orange)' } : { borderRadius: '20px' }}
+                        onClick={() => setActiveTab('communications')}
+                    >
+                        <i className="bi bi-arrow-left-right me-1"></i> Comms
+                    </button>
+                    <button 
+                        className={`btn btn-sm text-nowrap px-3 py-2 fw-bold rounded-pill ${activeTab === 'help' ? 'text-white shadow-sm' : 'btn-outline-secondary'}`} 
+                        style={activeTab === 'help' ? { backgroundColor: 'var(--accent-orange)', borderColor: 'var(--accent-orange)' } : { borderRadius: '20px' }}
+                        onClick={() => setActiveTab('help')}
+                    >
+                        <i className="bi bi-question-circle me-1"></i> Help
+                    </button>
+                </div>
+            </div>
+
+            <div className="row g-4 g-lg-5">
+                {/* Desktop Sidebar Navigation */}
+                <div className="col-12 col-md-3 d-none d-md-block">
                     <style>
                         {`
                         .profile-sidebar-btn {

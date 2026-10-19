@@ -1,4 +1,4 @@
-﻿/* Button Styles */
+/* Button Styles */
 .btn-brand {
   background: linear-gradient(45deg, var(--accent-orange), #e67e22);
   color: white;
@@ -8,6 +8,10 @@
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   box-shadow: 0 4px 15px rgba(211, 84, 0, 0.4);
   transition:
     transform 0.2s,
@@ -30,6 +34,10 @@
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   transition: all 0.3s;
   backdrop-filter: blur(4px);
 }

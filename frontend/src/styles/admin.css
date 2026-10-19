@@ -528,3 +528,18 @@ header span.me-3.fw-bold {
   font-size: 0.78rem !important;
   opacity: 0.85 !important;
 }
+
+/* ── Mobile Responsiveness for Admin ── */
+@media (max-width: 768px) {
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+  }
+  .table thead th, .table tbody td {
+    padding: 10px 12px !important;
+    font-size: 0.82rem !important;
+  }
+  .admin-mobile-drawer {
+    box-shadow: 10px 0 35px rgba(0, 0, 0, 0.5) !important;
+  }
+}

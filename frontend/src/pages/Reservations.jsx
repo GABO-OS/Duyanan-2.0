@@ -8,9 +8,9 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 // Placeholder imports - using existing images. 
 // You can replace these files in the assets folder with the 3 images you uploaded!
-import bg1 from '../assets/img/duyanan_bg.jpg';
-import bg2 from '../assets/img/sfc.png';
-import bg3 from '../assets/img/habhab.jpg';
+import bg1 from '../assets/img/duyanan_bg.webp';
+import bg2 from '../assets/img/sfc.webp';
+import bg3 from '../assets/img/habhab.webp';
 
 const bgImages = [bg1, bg2, bg3];
 
@@ -172,16 +172,16 @@ const Reservations = () => {
                 </div>
 
                 {/* Right Side: Form Container */}
-                <div className="col-12 col-lg-5 d-flex flex-column align-items-center justify-content-center" style={{ backgroundColor: '#e9ecef', padding: '40px 0', minHeight: '100vh' }}>
+                <div className="col-12 col-lg-5 d-flex flex-column align-items-center justify-content-center py-4 px-3 px-sm-4" style={{ backgroundColor: '#e9ecef', minHeight: '100vh' }}>
                     
                     {/* The form wrapper */}
-                    <div style={{ width: '100%', maxWidth: '450px', padding: '0 30px', marginTop: 'var(--nav-height)' }}>
-                        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-                            <div style={{ fontSize: '3rem', marginBottom: '10px', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }}>🍃</div>
-                            <h2 style={{ color: 'var(--primary-brown)', fontWeight: 800, margin: 0, letterSpacing: '0.02em', fontSize: '2rem' }}>
+                    <div style={{ width: '100%', maxWidth: '450px', marginTop: 'calc(var(--nav-height) + 12px)' }}>
+                        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                            <div style={{ fontSize: '2.5rem', marginBottom: '8px', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }}>🍃</div>
+                            <h2 style={{ color: 'var(--primary-brown)', fontWeight: 800, margin: 0, letterSpacing: '0.02em', fontSize: 'clamp(1.5rem, 4vw, 2rem)' }}>
                                 Duyanan Reservations
                             </h2>
-                            <p style={{ color: '#555', marginTop: '8px' }}>
+                            <p style={{ color: '#555', marginTop: '6px', fontSize: '0.9rem' }}>
                                 Book a table to start your session
                             </p>
                         </div>
@@ -251,7 +251,7 @@ const Reservations = () => {
 
                             {/* Date & Time row */}
                             <div className="row g-3 mb-3">
-                                <div className="col-md-6">
+                                <div className="col-12 col-sm-6">
                                     <label style={labelStyle}>Date</label>
                                     <input
                                         type="date"
@@ -263,7 +263,7 @@ const Reservations = () => {
                                         style={inputStyle}
                                     />
                                 </div>
-                                <div className="col-md-6">
+                                <div className="col-12 col-sm-6">
                                     <label style={labelStyle}>Time</label>
                                     <input
                                         type="time"
@@ -310,8 +310,9 @@ const Reservations = () => {
                                 style={{ 
                                     width: '100%', 
                                     padding: '12px 0', 
+                                    minHeight: '48px',
                                     fontSize: '1.1rem', 
-                                    borderRadius: '6px', 
+                                    borderRadius: '8px', 
                                     backgroundColor: isAuthenticated ? 'var(--accent-orange)' : '#aaa', 
                                     color: '#fff', 
                                     border: 'none', 
