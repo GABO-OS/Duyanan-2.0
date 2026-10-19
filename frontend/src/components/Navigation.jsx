@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 const Navigation = () => {
     const { cart } = useCart();
@@ -99,15 +100,46 @@ const Navigation = () => {
                 <div className="d-flex justify-content-between align-items-center w-100 d-lg-none position-relative" style={{ minHeight: '52px' }}>
                     {/* Hamburger Menu on Left */}
                     <button 
-                        className="navbar-toggler border-0 shadow-none p-1 d-flex align-items-center justify-content-center touch-target" 
+                        className="navbar-mobile-hamburger touch-target" 
                         type="button" 
                         onClick={() => setIsNavCollapsed(!isNavCollapsed)} 
                         aria-controls="navbarCollapse" 
                         aria-expanded={!isNavCollapsed} 
-                        aria-label="Toggle navigation"
-                        style={{ minWidth: '44px', minHeight: '44px' }}
+                        aria-label={isNavCollapsed ? "Open navigation menu" : "Close navigation menu"}
                     >
-                        <i className={`bi ${isNavCollapsed ? 'bi-list' : 'bi-x-lg'} text-white`} style={{ fontSize: '1.9rem', display: 'inline-block', transition: 'transform 0.3s ease', transform: isNavCollapsed ? 'rotate(0deg)' : 'rotate(90deg)' }}></i>
+                        {isNavCollapsed ? (
+                            <svg 
+                                width="22" 
+                                height="22" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="#ffffff" 
+                                strokeWidth="2.5" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round" 
+                                aria-hidden="true"
+                            >
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <line x1="3" y1="12" x2="21" y2="12"></line>
+                                <line x1="3" y1="18" x2="21" y2="18"></line>
+                            </svg>
+                        ) : (
+                            <svg 
+                                width="22" 
+                                height="22" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="#ffffff" 
+                                strokeWidth="2.5" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round" 
+                                aria-hidden="true"
+                            >
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        )}
+                        <span className="visually-hidden">Menu</span>
                     </button>
                     
                     {/* Brand Centered */}

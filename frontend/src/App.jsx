@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 // Lazy-loaded pages to split massive chunks (e.g. AdminPanel 181KB, Menu 96KB, Profile 92KB)
 // This dramatically reduces initial landing page bundle size and eliminates first-paint blocking.

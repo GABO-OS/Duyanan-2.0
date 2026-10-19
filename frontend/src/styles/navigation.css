@@ -178,3 +178,45 @@
   opacity: 1;
   margin-left: 5px;
 }
+
+/* Mobile Hamburger Button Badge */
+.navbar-mobile-hamburger {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 12px !important;
+  color: #ffffff !important;
+  cursor: pointer;
+  z-index: 10;
+  padding: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  outline: none;
+}
+
+.navbar-mobile-hamburger:hover,
+.navbar-mobile-hamburger:focus-visible {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.7) !important;
+  transform: scale(1.04);
+}
+
+.navbar-mobile-hamburger:active {
+  transform: scale(0.96);
+  background: rgba(255, 255, 255, 0.35) !important;
+}
+
+.navbar-mobile-hamburger svg {
+  display: block;
+  stroke: #ffffff;
+  transition: transform 0.25s ease;
+}
+
