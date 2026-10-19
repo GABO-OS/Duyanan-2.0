@@ -73,3 +73,36 @@
   border-radius: 20px;
   border: none;
 }
+
+/* Responsive Product Card on Menu Page */
+.menu-product-card {
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.menu-product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(160, 64, 0, 0.08);
+}
+
+.menu-card-img-wrap {
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #fdfbf7;
+}
+
+@media (max-width: 575px) {
+  .menu-card-img-wrap {
+    width: 88px;
+    height: 88px;
+    border-radius: 8px;
+  }
+}
+

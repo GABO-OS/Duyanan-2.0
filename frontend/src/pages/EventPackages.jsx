@@ -23,8 +23,8 @@ const EventPackages = () => {
     });
 
     useEffect(() => {
-        // Fetch all products
-        axios.get(`${API_URL}/api/products`)
+        // Fetch all products with 15s timeout
+        axios.get(`${API_URL}/api/products`, { timeout: 15000 })
             .then(response => {
                 const allProducts = response.data;
                 // Filter out Event Packages
@@ -233,17 +233,17 @@ const EventPackages = () => {
 
             {/* Customization Modal */}
             {selectedPackage && (
-                <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1060 }}>
-                    <div className="card border-0 shadow-lg rounded-4 overflow-hidden" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', backgroundColor: '#fffaf5' }}>
-                        <div className="card-header border-0 bg-white p-4 pb-3 d-flex justify-content-between align-items-center">
+                <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center animate__animated animate__fadeIn p-2 p-sm-3" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1060 }}>
+                    <div className="card border-0 shadow-lg rounded-4 overflow-hidden animate__animated animate__zoomIn animate__faster" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', backgroundColor: '#fffaf5' }}>
+                        <div className="card-header border-0 bg-white p-3 p-sm-4 pb-2 pb-sm-3 d-flex justify-content-between align-items-center">
                             <div>
                                 <span className="text-uppercase fw-bold text-muted small" style={{ letterSpacing: '1px' }}>Configure Inclusions</span>
-                                <h4 className="fw-bold m-0" style={{ color: 'var(--primary-brown)' }}>{selectedPackage.name}</h4>
+                                <h4 className="fw-bold m-0 fs-5 fs-sm-4" style={{ color: 'var(--primary-brown)' }}>{selectedPackage.name}</h4>
                             </div>
-                            <button className="btn-close" onClick={() => setSelectedPackage(null)}></button>
+                            <button className="btn-close touch-target" onClick={() => setSelectedPackage(null)} aria-label="Close"></button>
                         </div>
-                        <div className="card-body p-4 pt-2 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 180px)' }}>
-                            <p className="text-muted small mb-4">{selectedPackage.description}</p>
+                        <div className="card-body p-3 p-sm-4 pt-2 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 150px)' }}>
+                            <p className="text-muted small mb-3">{selectedPackage.description}</p>
                             
                             <form onSubmit={handleAddPackageToCart}>
                                 {/* Main Dishes Options */}
@@ -254,10 +254,11 @@ const EventPackages = () => {
                                     <div className="mb-3" key={`main-${idx}`}>
                                         <label className="form-label small fw-bold text-muted">Select Main Dish #{idx + 1}</label>
                                         <select 
-                                            className="form-select bg-white" 
+                                            className="form-select bg-white shadow-sm" 
                                             value={val}
                                             onChange={(e) => handleSelectChange('mains', idx, e.target.value)}
                                             required
+                                            style={{ borderRadius: '8px' }}
                                         >
                                             <option value="">-- Choose a Main Course --</option>
                                             {getMainOptions().map(item => (
@@ -275,10 +276,11 @@ const EventPackages = () => {
                                     <div className="mb-3" key={`side-${idx}`}>
                                         <label className="form-label small fw-bold text-muted">Select Side/Pasta #{idx + 1}</label>
                                         <select 
-                                            className="form-select bg-white" 
+                                            className="form-select bg-white shadow-sm" 
                                             value={val}
                                             onChange={(e) => handleSelectChange('sides', idx, e.target.value)}
                                             required
+                                            style={{ borderRadius: '8px' }}
                                         >
                                             <option value="">-- Choose a Side/Pasta --</option>
                                             {getSideOptions().map(item => (
@@ -296,10 +298,11 @@ const EventPackages = () => {
                                     <div className="mb-3" key={`drink-${idx}`}>
                                         <label className="form-label small fw-bold text-muted">Select Drink Option #{idx + 1}</label>
                                         <select 
-                                            className="form-select bg-white" 
+                                            className="form-select bg-white shadow-sm" 
                                             value={val}
                                             onChange={(e) => handleSelectChange('drinks', idx, e.target.value)}
                                             required
+                                            style={{ borderRadius: '8px' }}
                                         >
                                             <option value="">-- Choose a Drink --</option>
                                             {getDrinkOptions().map(item => (
@@ -309,9 +312,9 @@ const EventPackages = () => {
                                     </div>
                                 ))}
 
-                                <div className="mt-4 pt-3 d-flex justify-content-end gap-2 border-top">
-                                    <button type="button" className="btn btn-light px-4" onClick={() => setSelectedPackage(null)}>Cancel</button>
-                                    <button type="submit" className="btn text-white px-4 fw-bold" style={{ backgroundColor: 'var(--accent-orange)' }}>
+                                <div className="mt-4 pt-3 d-flex flex-column flex-sm-row justify-content-end gap-2 border-top">
+                                    <button type="button" className="btn btn-light px-4 py-2 order-2 order-sm-1" onClick={() => setSelectedPackage(null)} style={{ borderRadius: '8px', minHeight: '44px' }}>Cancel</button>
+                                    <button type="submit" className="btn text-white px-4 py-2 fw-bold order-1 order-sm-2" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '8px', minHeight: '44px' }}>
                                         Add to Cart • ₱{selectedPackage.priceSolo.toLocaleString(undefined, {minimumFractionDigits: 2})}
                                     </button>
                                 </div>

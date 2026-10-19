@@ -160,13 +160,15 @@ const ReservationModal = ({ show, handleClose }) => {
                                 background: 'rgba(255,255,255,0.2)',
                                 border: '1px solid rgba(255,255,255,0.4)',
                                 borderRadius: '50%',
-                                width: '32px',
-                                height: '32px',
+                                width: '38px',
+                                height: '38px',
+                                minWidth: '38px',
+                                minHeight: '38px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 color: '#fff',
-                                fontSize: '1.1rem',
+                                fontSize: '1.2rem',
                                 cursor: 'pointer',
                                 flexShrink: 0,
                                 transition: 'background 0.2s'
@@ -221,7 +223,7 @@ const ReservationModal = ({ show, handleClose }) => {
 
                             {/* Date & Time row */}
                             <div className="row g-3 mb-3">
-                                <div className="col-6">
+                                <div className="col-12 col-sm-6">
                                     <label style={labelStyle}>Date</label>
                                     <input
                                         type="date"
@@ -233,7 +235,7 @@ const ReservationModal = ({ show, handleClose }) => {
                                         style={inputStyle}
                                     />
                                 </div>
-                                <div className="col-6">
+                                <div className="col-12 col-sm-6">
                                     <label style={labelStyle}>Time</label>
                                     <input
                                         type="time"
@@ -275,7 +277,7 @@ const ReservationModal = ({ show, handleClose }) => {
                             </div>
 
                             {/* Submit */}
-                            <button type="submit" className="btn-brand w-100" style={{ padding: '12px 0', fontSize: '1rem' }}>
+                            <button type="submit" className="btn-brand w-100" style={{ padding: '12px 0', fontSize: '1rem', minHeight: '48px', borderRadius: '10px' }}>
                                 Confirm Reservation
                             </button>
                         </form>

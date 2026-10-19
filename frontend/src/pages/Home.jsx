@@ -3,10 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import Swal from 'sweetalert2';
-import duyananBg from '../assets/img/duyanan_bg.jpg';
-import sfcImg from '../assets/img/sfc.png';
-import habhabImg from '../assets/img/habhab.jpg';
-import turonImg from '../assets/img/turon.png';
+import duyananBg from '../assets/img/duyanan_bg.webp';
+import sfcImg from '../assets/img/sfc.webp';
+import habhabImg from '../assets/img/habhab.webp';
+import turonImg from '../assets/img/turon.webp';
 
 const carouselSlides = [
     {
@@ -141,7 +141,7 @@ const Home = () => {
 
                 <div className="container position-relative" style={{ zIndex: 1 }}>
                     <div
-                        className="frosted-panel p-5 mx-auto"
+                        className="frosted-panel p-4 p-sm-5 mx-auto"
                         style={{
                             maxWidth: '800px',
                             background: 'rgba(255,255,255,0.10)',
@@ -151,15 +151,15 @@ const Home = () => {
                             boxShadow: '0 12px 48px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.5)'
                         }}
                     >
-                        <h1 className="display-3 mb-4" style={{ color: '#fff', textShadow: '2px 2px 8px rgba(0,0,0,0.6)', fontWeight: 800 }}>
+                        <h1 className="mb-4" style={{ color: '#fff', textShadow: '2px 2px 8px rgba(0,0,0,0.6)', fontWeight: 800, fontSize: 'clamp(2rem, 6vw, 3.8rem)' }}>
                             TULOY PO KAYO, SA DUYANAN!
                         </h1>
-                        <p className="lead mb-4" style={{ color: 'rgba(255,255,255,0.92)', textShadow: '1px 1px 4px rgba(0,0,0,0.5)', fontSize: '1.15rem' }}>
+                        <p className="lead mb-4" style={{ color: 'rgba(255,255,255,0.92)', textShadow: '1px 1px 4px rgba(0,0,0,0.5)', fontSize: 'clamp(0.95rem, 3vw, 1.15rem)' }}>
                             Experience the authentic taste of Filipino cuisine in a relaxing atmosphere.
                         </p>
-                        <div className="d-flex justify-content-center gap-3">
-                            <Link to="/menu" className="btn-outline-brand text-decoration-none">Order Now</Link>
-                            <Link to="/book-reservation" className="btn-outline-brand text-decoration-none">Book Reservation</Link>
+                        <div className="d-flex flex-column flex-sm-row justify-content-center gap-2 gap-sm-3">
+                            <Link to="/menu" className="btn-outline-brand text-decoration-none d-flex align-items-center justify-content-center" style={{ minHeight: '44px' }}>Order Now</Link>
+                            <Link to="/book-reservation" className="btn-outline-brand text-decoration-none d-flex align-items-center justify-content-center" style={{ minHeight: '44px' }}>Book Reservation</Link>
                         </div>
                     </div>
                 </div>
@@ -204,7 +204,7 @@ const Home = () => {
                                 top: '50%',
                                 left: '6%',
                                 transform: 'translateY(-50%)',
-                                maxWidth: '460px',
+                                maxWidth: 'min(460px, 88%)',
                                 textAlign: 'left',
                             }}>
                                 <span style={{
@@ -304,7 +304,7 @@ const Home = () => {
             <section className="section-py">
                 <div className="container">
                     <div className="text-center mb-5">
-                        <h2 className="fw-extrabold mb-2" style={{ color: 'var(--primary-brown)', textShadow: '0 1px 2px rgba(255,255,255,0.5)', fontSize: '2.5rem', fontWeight: 800 }}>Recommended Specials</h2>
+                        <h2 className="fw-extrabold mb-2" style={{ color: 'var(--primary-brown)', textShadow: '0 1px 2px rgba(255,255,255,0.5)', fontSize: 'clamp(1.75rem, 5vw, 2.5rem)', fontWeight: 800 }}>Recommended Specials</h2>
                         <p className="text-muted mx-auto mb-0" style={{ maxWidth: '650px', fontSize: '1.05rem', lineHeight: '1.6' }}>Indulge in our selection of customer-favorite Filipino comfort food and dessert, prepared fresh daily.</p>
                     </div>
 
@@ -345,7 +345,7 @@ const Home = () => {
                                         {item.tag}
                                     </span>
                                     <div style={{ overflow: 'hidden', height: '280px' }}>
-                                        <img src={item.img} className="card-img-top w-100 h-100" alt={item.name} style={{ objectFit: 'cover' }} />
+                                        <img src={item.img} className="card-img-top w-100 h-100" alt={item.name} loading="lazy" decoding="async" style={{ objectFit: 'cover' }} />
                                     </div>
                                     <div className="card-body text-center d-flex flex-column p-4">
                                         <h5 className="card-title fw-bold mb-1" style={{ color: 'var(--primary-brown)', fontSize: '1.35rem' }}>{item.name}</h5>
@@ -374,7 +374,8 @@ const Home = () => {
                                                     cursor: isAuthenticated ? 'pointer' : 'not-allowed',
                                                     borderRadius: '30px',
                                                     padding: '12px 0',
-                                                    fontSize: '0.9rem'
+                                                    fontSize: '0.9rem',
+                                                    minHeight: '44px'
                                                 }}
                                             >
                                                 {!isAuthenticated && <i className="bi bi-lock-fill me-1" style={{ fontSize: '0.9rem' }}></i>}

@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import sfcImg from '../assets/img/sfc.png';
-import habhabImg from '../assets/img/habhab.jpg';
-import logoImg from '../assets/img/duyanan_logo.png';
+import sfcImg from '../assets/img/sfc.webp';
+import habhabImg from '../assets/img/habhab.webp';
+import logoImg from '../assets/img/duyanan_logo.webp';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import Swal from 'sweetalert2';
@@ -61,6 +61,8 @@ const Menu = () => {
     const [groupMeals, setGroupMeals] = useState([]);
     const [menuItems, setMenuItems] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isServerWakingUp, setIsServerWakingUp] = useState(false);
+    const [hasLoadError, setHasLoadError] = useState(false);
     const { addToCart } = useCart();
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
@@ -85,9 +87,22 @@ const Menu = () => {
         }
     };
 
-    useEffect(() => {
-        axios.get(`${API_URL}/api/products`)
+    const fetchMenuData = () => {
+        setIsLoading(true);
+        setHasLoadError(false);
+        setIsServerWakingUp(false);
+
+        // Warn user if backend is experiencing a Render container cold start
+        const warmUpTimer = setTimeout(() => {
+            setIsServerWakingUp(true);
+        }, 3500);
+
+        axios.get(`${API_URL}/api/products`, { timeout: 15000 })
             .then(response => {
+                clearTimeout(warmUpTimer);
+                setIsServerWakingUp(false);
+                setHasLoadError(false);
+
                 const updatedProducts = response.data.map(p => {
                     let finalImg = p.imageUrl;
                     if (p.name === 'Sizzling Fried Chicken' || p.name === 'Chicken Inasal' || p.imageUrl === 'sfc.png' || p.imageUrl === 'sfc.jpg') {
@@ -115,7 +130,10 @@ const Menu = () => {
                 setGroupMeals(filteredGroupMeals);
             })
             .catch(error => {
-                console.error('Error fetching products:', error);
+                clearTimeout(warmUpTimer);
+                setIsServerWakingUp(false);
+                setHasLoadError(true);
+                console.warn('Backend unavailable or slow to respond, using fallback menu items:', error?.message);
                 
                 // Fallbacks
                 const fallbackRegular = [
@@ -181,7 +199,14 @@ const Menu = () => {
                     }
                 ]);
             })
-            .finally(() => setIsLoading(false));
+            .finally(() => {
+                clearTimeout(warmUpTimer);
+                setIsLoading(false);
+            });
+    };
+
+    useEffect(() => {
+        fetchMenuData();
     }, []);
 
     const getPackageLimits = (pkgName) => {
@@ -634,24 +659,68 @@ const Menu = () => {
                 </div>
             )}
 
+            {/* Server warm-up notice banner */}
+            {isServerWakingUp && (
+                <div style={{
+                    background: 'linear-gradient(90deg, #d35400 0%, #a04000 100%)',
+                    color: '#fff',
+                    textAlign: 'center',
+                    padding: '8px 20px',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px'
+                }}>
+                    <span className="spinner-border spinner-border-sm text-light" role="status" style={{ width: '1rem', height: '1rem' }}></span>
+                    <span>☕ Duyanan&apos;s cloud kitchen is waking up from idle... Please hold on while we fire up the ovens!</span>
+                </div>
+            )}
+
+            {/* Offline fallback info banner with retry */}
+            {hasLoadError && (
+                <div style={{
+                    background: '#f8f9fa',
+                    borderBottom: '1px solid #e9ecef',
+                    color: '#6c757d',
+                    textAlign: 'center',
+                    padding: '8px 20px',
+                    fontSize: '0.86rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '12px'
+                }}>
+                    <span>Displaying cached menu items.</span>
+                    <button 
+                        className="btn btn-sm btn-outline-secondary py-0 px-2 fw-bold" 
+                        onClick={fetchMenuData}
+                        style={{ fontSize: '0.8rem', borderRadius: '15px' }}
+                    >
+                        <i className="bi bi-arrow-clockwise me-1"></i> Check Server
+                    </button>
+                </div>
+            )}
+
             {/* Sticky header bar */}
-            <div className="sticky-top bg-white pt-4 pb-3 px-4 shadow-sm z-3" style={{ top: 'var(--nav-height)' }}>
-                <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-3">
-                    <h2 className="m-0" style={{ color: 'var(--primary-brown)', fontWeight: 'bold' }}>Duyanan {activeTab}</h2>
+            <div className="sticky-top bg-white pt-3 pt-md-4 pb-2 pb-md-3 px-3 px-md-4 shadow-sm z-3" style={{ top: 'var(--nav-height)' }}>
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-2 mb-md-3 gap-2 gap-md-3">
+                    <h2 className="m-0" style={{ color: 'var(--primary-brown)', fontWeight: 'bold', fontSize: 'clamp(1.25rem, 4vw, 1.75rem)' }}>Duyanan {activeTab}</h2>
                     
-                    {/* Tab Switcher */}
-                    <div className="d-flex p-1 bg-light rounded-pill border" style={{ gap: '4px' }}>
+                    {/* Tab Switcher - Scrollable Segmented Control on mobile */}
+                    <div className="d-flex p-1 bg-light rounded-pill border overflow-x-auto no-scrollbar w-100 w-md-auto" style={{ gap: '4px', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
                         {['Menu', 'Event Packages', 'Group Meals'].map((tab) => (
                             <button
                                 key={tab}
-                                className="btn rounded-pill border-0 px-3 py-1.5 fw-bold text-nowrap"
+                                className="btn rounded-pill border-0 px-3 py-1.5 fw-bold text-nowrap flex-grow-1 flex-md-grow-0"
                                 style={{
                                     backgroundColor: activeTab === tab ? 'var(--accent-orange)' : 'transparent',
                                     color: activeTab === tab ? '#fff' : '#6c757d',
                                     boxShadow: activeTab === tab ? '0 4px 10px rgba(211, 84, 0, 0.2)' : 'none',
                                     transition: 'all 0.25s ease',
-                                    fontSize: '0.9rem',
-                                    padding: '6px 16px'
+                                    fontSize: '0.85rem',
+                                    padding: '6px 14px'
                                 }}
                                 onClick={() => {
                                     setActiveTab(tab);
@@ -660,22 +729,22 @@ const Menu = () => {
                                     window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }}
                             >
-                                {tab === 'Menu' && <i className="bi bi-book me-2"></i>}
-                                {tab === 'Event Packages' && <i className="bi bi-gift me-2"></i>}
-                                {tab === 'Group Meals' && <i className="bi bi-people me-2"></i>}
+                                {tab === 'Menu' && <i className="bi bi-book me-1 me-sm-2"></i>}
+                                {tab === 'Event Packages' && <i className="bi bi-gift me-1 me-sm-2"></i>}
+                                {tab === 'Group Meals' && <i className="bi bi-people me-1 me-sm-2"></i>}
                                 {tab}
                             </button>
                         ))}
                     </div>
                 </div>
                 
-                <div className="d-flex align-items-center flex-wrap flex-md-nowrap gap-3">
-                    {/* Search Bar */}
-                    <div className="position-relative" style={{ minWidth: '250px' }}>
+                <div className="d-flex align-items-center flex-wrap flex-md-nowrap gap-2 gap-md-3">
+                    {/* Search Bar - Spans 100% on mobile without exceeding width */}
+                    <div className="position-relative w-100 w-md-auto flex-grow-1" style={{ minWidth: 0, maxWidth: '100%' }}>
                         <i className="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
                         <input 
                             type="text" 
-                            className="form-control rounded-pill ps-5" 
+                            className="form-control rounded-pill ps-5 w-100" 
                             placeholder="Search all items..."
                             value={searchQuery}
                             onChange={(e) => {
@@ -703,18 +772,24 @@ const Menu = () => {
 
                     {/* Horizontal Scroller for Categories with Arrows (Only for regular Menu) */}
                     {activeTab === 'Menu' && (
-                        <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: 0 }}>
-                            <button className="btn btn-sm border-0 text-muted px-1 me-1" onClick={() => scrollCategories('left')}>
+                        <div className="d-flex align-items-center flex-grow-1 w-100 w-md-auto" style={{ minWidth: 0 }}>
+                            <button 
+                                className="btn btn-sm border-0 text-muted p-1 me-1 touch-target d-flex align-items-center justify-content-center" 
+                                onClick={() => scrollCategories('left')}
+                                aria-label="Scroll left"
+                                style={{ minWidth: '36px', minHeight: '36px' }}
+                            >
                                 <i className="bi bi-chevron-left fs-5"></i>
                             </button>
                             
-                            <div ref={categoryScrollRef} className="overflow-x-auto no-scrollbar d-flex align-items-center gap-2 flex-grow-1 px-1" style={{ whiteSpace: 'nowrap', scrollBehavior: 'smooth' }}>
+                            <div ref={categoryScrollRef} className="overflow-x-auto no-scrollbar d-flex align-items-center gap-2 flex-grow-1 px-1" style={{ whiteSpace: 'nowrap', scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}>
                                 <button 
-                                    className="btn rounded-pill border-0 fw-bold px-4 py-2"
+                                    className="btn rounded-pill border-0 fw-bold px-3 px-sm-4 py-2"
                                     onClick={() => scrollToCategory('All')}
                                     style={{ 
                                         backgroundColor: activeCategory === 'All' ? 'var(--accent-orange)' : 'transparent', 
                                         color: activeCategory === 'All' ? '#fff' : '#6c757d', 
+                                        fontSize: '0.88rem'
                                     }}
                                 >
                                     All
@@ -722,12 +797,13 @@ const Menu = () => {
                                 {categories.slice(1).map(cat => (
                                     <button 
                                         key={cat}
-                                        className="btn rounded-pill border-0 fw-bold px-4 py-2"
+                                        className="btn rounded-pill border-0 fw-bold px-3 px-sm-4 py-2"
                                         onClick={() => scrollToCategory(cat)}
                                         style={{ 
                                             backgroundColor: activeCategory === cat ? 'var(--accent-orange)' : 'transparent', 
                                             color: activeCategory === cat ? '#fff' : '#6c757d', 
-                                            whiteSpace: 'nowrap'
+                                            whiteSpace: 'nowrap',
+                                            fontSize: '0.88rem'
                                         }}
                                     >
                                         {cat}
@@ -735,7 +811,12 @@ const Menu = () => {
                                 ))}
                             </div>
 
-                            <button className="btn btn-sm border-0 text-muted px-1 ms-1" onClick={() => scrollCategories('right')}>
+                            <button 
+                                className="btn btn-sm border-0 text-muted p-1 ms-1 touch-target d-flex align-items-center justify-content-center" 
+                                onClick={() => scrollCategories('right')}
+                                aria-label="Scroll right"
+                                style={{ minWidth: '36px', minHeight: '36px' }}
+                            >
                                 <i className="bi bi-chevron-right fs-5"></i>
                             </button>
                         </div>
@@ -771,35 +852,34 @@ const Menu = () => {
                                                 {searchedProducts.length} {searchedProducts.length === 1 ? 'item' : 'items'}
                                             </span>
                                         </h3>
-                                        <div className="row g-4">
+                                        <div className="row g-3 g-md-4">
                                             {searchedProducts.map(product => (
-                                                <div className="col-md-6 col-lg-6 col-xl-4" key={product.id}>
-                                                    {/* Reuse the same card component */}
-                                                    <div className="card h-100 border-0 bg-white position-relative" style={{ borderRadius: '12px', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)', position: 'relative' }}>
-                                                        <span className="badge rounded-pill position-absolute" style={{ backgroundColor: 'rgba(160,64,0,0.08)', color: 'var(--primary-brown)', fontSize: '0.65rem', fontWeight: 600, top: '12px', right: '12px', zIndex: 1 }}>
-                                                            {product.category}
-                                                        </span>
+                                                <div className="col-12 col-md-6 col-xl-4" key={product.id}>
+                                                    <div className="card h-100 border-0 menu-product-card position-relative">
                                                         <div className="d-flex h-100 align-items-center p-3">
-                                                            <div style={{ width: '120px', height: '120px', flexShrink: 0, overflow: 'hidden', borderRadius: '10px' }}>
+                                                            <div className="menu-card-img-wrap">
                                                                 <img src={product.imageUrl || 'https://placehold.co/300x200?text=No+Image'} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                             </div>
-                                                            <div className="ms-3 d-flex flex-column h-100 justify-content-center w-100 pt-1">
-                                                                <div className="mb-1" style={{ paddingRight: '80px' }}>
-                                                                    <h5 className="mb-0" style={{ color: '#222', fontWeight: '700', fontSize: '1.05rem', lineHeight: '1.3' }}>
+                                                            <div className="ms-3 d-flex flex-column h-100 justify-content-center w-100 pt-1" style={{ minWidth: 0 }}>
+                                                                <div className="d-flex justify-content-between align-items-start mb-1 gap-2">
+                                                                    <h5 className="mb-0 text-truncate" style={{ color: '#222', fontWeight: '700', fontSize: '1rem', lineHeight: '1.3' }} title={product.name}>
                                                                         {product.category === 'Milk Shakes' && product.flavors ? product.flavors : product.name}
                                                                     </h5>
+                                                                    <span className="badge rounded-pill flex-shrink-0" style={{ backgroundColor: 'rgba(160,64,0,0.08)', color: 'var(--primary-brown)', fontSize: '0.62rem', fontWeight: 600 }}>
+                                                                        {product.category}
+                                                                    </span>
                                                                 </div>
                                                                 <p className="text-muted mb-2" style={{ fontSize: '0.82rem', lineHeight: '1.3', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                                                     {product.description}
                                                                 </p>
-                                                                <div className="d-flex justify-content-between align-items-center mt-auto pt-1">
+                                                                <div className="d-flex justify-content-between align-items-center mt-auto pt-1 gap-2 flex-wrap">
                                                                     <span style={{ fontSize: '0.85rem', color: 'var(--accent-orange)', fontWeight: '700' }}>
                                                                         ₱{(product.priceSolo || product.priceALaCarte || product.price1Liter || 0).toFixed(2)}
                                                                         {(product.priceALaCarte > 0 && product.priceSolo > 0) ? ` - ₱${product.priceALaCarte.toFixed(2)}` : ''}
                                                                     </span>
                                                                     <button 
                                                                         className="btn btn-sm px-3 fw-bold rounded-pill text-nowrap"
-                                                                        style={{ backgroundColor: 'rgba(211, 84, 0, 0.08)', color: 'var(--accent-orange)', fontSize: '0.8rem', transition: 'all 0.2s ease', border: '1px solid rgba(211, 84, 0, 0.15)' }}
+                                                                        style={{ backgroundColor: 'rgba(211, 84, 0, 0.08)', color: 'var(--accent-orange)', fontSize: '0.8rem', transition: 'all 0.2s ease', border: '1px solid rgba(211, 84, 0, 0.15)', minHeight: '36px' }}
                                                                         onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-orange)'; e.currentTarget.style.color = '#fff'; }}
                                                                         onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(211, 84, 0, 0.08)'; e.currentTarget.style.color = 'var(--accent-orange)'; }}
                                                                         onClick={() => handleAddToCart(product)}
@@ -837,13 +917,13 @@ const Menu = () => {
                                             </h3>
                                             
                                             {categoryProducts.length > 0 ? (
-                                                <div className="row g-4">
+                                                <div className="row g-3 g-md-4">
                                                     {categoryProducts.map(product => (
-                                                        <div className="col-md-6 col-lg-6 col-xl-4" key={product.id}>
-                                                            <div className="card h-100 border-0 bg-white" style={{ borderRadius: '12px', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                        <div className="col-12 col-md-6 col-xl-4" key={product.id}>
+                                                            <div className="card h-100 border-0 menu-product-card position-relative">
                                                                 <div className="d-flex h-100 align-items-center p-3">
                                                                     {/* Image Container */}
-                                                                    <div style={{ width: '120px', height: '120px', flexShrink: 0, overflow: 'hidden', borderRadius: '10px' }}>
+                                                                    <div className="menu-card-img-wrap">
                                                                         <img 
                                                                             src={product.imageUrl || 'https://placehold.co/300x200?text=No+Image'} 
                                                                             alt={product.name} 
@@ -852,14 +932,16 @@ const Menu = () => {
                                                                     </div>
                                                                     
                                                                     {/* Content Container */}
-                                                                    <div className="ms-3 d-flex flex-column h-100 justify-content-center w-100 pt-1">
-                                                                        <h5 className="mb-1" style={{ color: '#222', fontWeight: '700', fontSize: '1.05rem', lineHeight: '1.3' }}>
-                                                                            {product.category === 'Milk Shakes' && product.flavors ? product.flavors : product.name}
-                                                                        </h5>
+                                                                    <div className="ms-3 d-flex flex-column h-100 justify-content-center w-100 pt-1" style={{ minWidth: 0 }}>
+                                                                        <div className="d-flex justify-content-between align-items-start mb-1 gap-2">
+                                                                            <h5 className="mb-0 text-truncate" style={{ color: '#222', fontWeight: '700', fontSize: '1rem', lineHeight: '1.3' }} title={product.name}>
+                                                                                {product.category === 'Milk Shakes' && product.flavors ? product.flavors : product.name}
+                                                                            </h5>
+                                                                        </div>
                                                                         <p className="text-muted mb-2" style={{ fontSize: '0.82rem', lineHeight: '1.3', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                                                             {product.description}
                                                                         </p>
-                                                                        <div className="d-flex justify-content-between align-items-center mt-auto pt-1">
+                                                                        <div className="d-flex justify-content-between align-items-center mt-auto pt-1 gap-2 flex-wrap">
                                                                             <div className="d-flex flex-column">
                                                                                 {['Milk Shakes', 'Drinks'].includes(product.category) && (
                                                                                     <>
@@ -1116,17 +1198,17 @@ const Menu = () => {
 
             {/* Customization Modal for Event Packages */}
             {selectedPackage && (
-                <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center animate__animated animate__fadeIn" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1060 }}>
+                <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center animate__animated animate__fadeIn p-2 p-sm-3" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1060 }}>
                     <div className="card border-0 shadow-lg rounded-4 overflow-hidden animate__animated animate__zoomIn animate__faster" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', backgroundColor: '#fffaf5' }}>
-                        <div className="card-header border-0 bg-white p-4 pb-3 d-flex justify-content-between align-items-center">
+                        <div className="card-header border-0 bg-white p-3 p-sm-4 pb-2 pb-sm-3 d-flex justify-content-between align-items-center">
                             <div>
                                 <span className="text-uppercase fw-bold text-muted small" style={{ letterSpacing: '1px' }}>Configure Inclusions</span>
-                                <h4 className="fw-bold m-0" style={{ color: 'var(--primary-brown)' }}>{selectedPackage.name}</h4>
+                                <h4 className="fw-bold m-0 fs-5 fs-sm-4" style={{ color: 'var(--primary-brown)' }}>{selectedPackage.name}</h4>
                             </div>
-                            <button className="btn-close" onClick={() => setSelectedPackage(null)}></button>
+                            <button className="btn-close touch-target" onClick={() => setSelectedPackage(null)} aria-label="Close"></button>
                         </div>
-                        <div className="card-body p-4 pt-2 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 180px)' }}>
-                            <p className="text-muted small mb-4">{selectedPackage.description}</p>
+                        <div className="card-body p-3 p-sm-4 pt-2 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 150px)' }}>
+                            <p className="text-muted small mb-3">{selectedPackage.description}</p>
                             
                             <form onSubmit={handleAddPackageToCart}>
                                 {/* Main Dishes Options */}
@@ -1195,9 +1277,9 @@ const Menu = () => {
                                     </div>
                                 ))}
 
-                                <div className="mt-4 pt-3 d-flex justify-content-end gap-2 border-top">
-                                    <button type="button" className="btn btn-light px-4" onClick={() => setSelectedPackage(null)} style={{ borderRadius: '8px' }}>Cancel</button>
-                                    <button type="submit" className="btn text-white px-4 fw-bold" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '8px' }}>
+                                <div className="mt-4 pt-3 d-flex flex-column flex-sm-row justify-content-end gap-2 border-top">
+                                    <button type="button" className="btn btn-light px-4 py-2 order-2 order-sm-1" onClick={() => setSelectedPackage(null)} style={{ borderRadius: '8px', minHeight: '44px' }}>Cancel</button>
+                                    <button type="submit" className="btn text-white px-4 py-2 fw-bold order-1 order-sm-2" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '8px', minHeight: '44px' }}>
                                         Add to Cart • ₱{selectedPackage.priceSolo.toLocaleString(undefined, {minimumFractionDigits: 2})}
                                     </button>
                                 </div>
@@ -1211,8 +1293,8 @@ const Menu = () => {
             {selectedGroupMeal && (() => {
                 const details = parseGroupMealDescription(selectedGroupMeal.description);
                 return (
-                    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center animate__animated animate__fadeIn" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1060 }}>
-                        <div className="card border-0 shadow-lg animate__animated animate__zoomIn animate__faster" style={{ width: '90%', maxWidth: '850px', backgroundColor: '#fffaf5', borderRadius: '24px', overflow: 'hidden' }}>
+                    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center animate__animated animate__fadeIn p-2 p-sm-3" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1060 }}>
+                        <div className="card border-0 shadow-lg animate__animated animate__zoomIn animate__faster" style={{ width: '100%', maxWidth: '850px', maxHeight: '92vh', backgroundColor: '#fffaf5', borderRadius: '24px', overflowY: 'auto' }}>
                             <div className="row g-0 align-items-stretch">
                                 {/* Left side: Image (visible on md screens and up) */}
                                 <div className="col-md-5 d-none d-md-block" style={{ position: 'relative', minHeight: '420px' }}>
@@ -1227,7 +1309,7 @@ const Menu = () => {
                                 </div>
                                 
                                 {/* Right side: Details */}
-                                <div className="col-12 col-md-7 p-4 d-flex flex-column justify-content-between" style={{ minHeight: '420px' }}>
+                                <div className="col-12 col-md-7 p-3 p-sm-4 d-flex flex-column justify-content-between" style={{ minHeight: '380px' }}>
                                     {/* Mobile image and header (hidden on md and up) */}
                                     <div className="d-md-none mb-3">
                                         <div style={{ height: '140px', borderRadius: '16px', overflow: 'hidden', position: 'relative', marginBottom: '8px' }}>
@@ -1244,7 +1326,7 @@ const Menu = () => {
 
                                     <div className="d-flex justify-content-between align-items-center mb-3">
                                         <h6 className="text-uppercase fw-bold text-muted small m-0" style={{ letterSpacing: '1.2px', fontSize: '0.78rem' }}>Meal Package Details</h6>
-                                        <button className="btn-close" onClick={() => setSelectedGroupMeal(null)} aria-label="Close" style={{ padding: '0.5rem' }}></button>
+                                        <button className="btn-close touch-target" onClick={() => setSelectedGroupMeal(null)} aria-label="Close" style={{ padding: '0.5rem' }}></button>
                                     </div>
 
                                     <div className="mb-3 flex-grow-1" style={{ minHeight: 0 }}>
@@ -1259,8 +1341,8 @@ const Menu = () => {
                                     <div className="row g-2 mb-3">
                                         {details.goodFor && (
                                             <div className="col-6">
-                                                <div className="d-flex align-items-center p-3 rounded-3 border bg-white h-100">
-                                                    <i className="bi bi-people-fill text-primary fs-4 me-3"></i>
+                                                <div className="d-flex align-items-center p-2 p-sm-3 rounded-3 border bg-white h-100">
+                                                    <i className="bi bi-people-fill text-primary fs-4 me-2 me-sm-3"></i>
                                                     <div>
                                                         <div className="small text-muted fw-bold" style={{ fontSize: '0.7rem' }}>Good For</div>
                                                         <div className="fw-bold text-dark" style={{ fontSize: '0.82rem' }}>{details.goodFor} pax</div>
@@ -1270,8 +1352,8 @@ const Menu = () => {
                                         )}
                                         {details.savings > 0 && (
                                             <div className="col-6">
-                                                <div className="d-flex align-items-center p-3 rounded-3 border bg-success-subtle h-100" style={{ backgroundColor: '#e6ffed' }}>
-                                                    <i className="bi bi-piggy-bank-fill text-success fs-4 me-3"></i>
+                                                <div className="d-flex align-items-center p-2 p-sm-3 rounded-3 border bg-success-subtle h-100" style={{ backgroundColor: '#e6ffed' }}>
+                                                    <i className="bi bi-piggy-bank-fill text-success fs-4 me-2 me-sm-3"></i>
                                                     <div>
                                                         <div className="small text-success fw-bold" style={{ fontSize: '0.7rem' }}>Money Saved</div>
                                                         <div className="fw-bold text-success" style={{ fontSize: '0.82rem' }}>₱{details.savings}</div>
@@ -1281,16 +1363,16 @@ const Menu = () => {
                                         )}
                                     </div>
 
-                                    <div className="d-flex justify-content-between align-items-center border-top pt-3 mt-2">
+                                    <div className="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center border-top pt-3 mt-2 gap-2">
                                         <div>
                                             <div className="small text-muted fw-bold" style={{ fontSize: '0.7rem' }}>Total Price</div>
                                             <div className="fs-4 fw-bold" style={{ color: 'var(--accent-orange)' }}>₱{selectedGroupMeal.priceSolo.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
                                         </div>
                                         <div className="d-flex gap-2">
-                                            <button type="button" className="btn btn-outline-secondary px-3" onClick={() => setSelectedGroupMeal(null)} style={{ borderRadius: '10px', fontWeight: 600, fontSize: '0.85rem' }}>
+                                            <button type="button" className="btn btn-outline-secondary flex-grow-1 flex-sm-grow-0 px-3" onClick={() => setSelectedGroupMeal(null)} style={{ borderRadius: '10px', fontWeight: 600, fontSize: '0.85rem', minHeight: '44px' }}>
                                                 Cancel
                                             </button>
-                                            <button type="button" className="btn text-white px-4 fw-bold" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '10px', fontSize: '0.85rem' }} onClick={() => handleConfirmGroupMeal(selectedGroupMeal)}>
+                                            <button type="button" className="btn text-white flex-grow-1 flex-sm-grow-0 px-4 fw-bold" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '10px', fontSize: '0.85rem', minHeight: '44px' }} onClick={() => handleConfirmGroupMeal(selectedGroupMeal)}>
                                                 Confirm Order
                                             </button>
                                         </div>

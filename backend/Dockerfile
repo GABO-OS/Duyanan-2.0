@@ -24,4 +24,11 @@ RUN mkdir -p /app/uploads
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# JVM performance optimization flags for Render free tier (0.1 vCPU / 512MB RAM):
+# -XX:+TieredCompilation -XX:TieredStopAtLevel=1: Restricts JIT to C1 compiler, avoiding C2 compiler CPU spikes on startup
+# -Xss256k: Halves per-thread stack allocation to conserve container RAM
+# -XX:MaxRAMPercentage=75.0: Caps heap usage to prevent container OOM killer
+# -Djava.security.egd=file:/dev/./urandom: Fast, non-blocking entropy generation
+ENV JAVA_OPTS="-XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Xss256k -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
