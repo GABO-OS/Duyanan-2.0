@@ -34,10 +34,31 @@ const carouselSlides = [
 
 const Home = () => {
     const [activeSlide, setActiveSlide] = useState(0);
+    const [touchStartX, setTouchStartX] = useState(null);
+    const [touchEndX, setTouchEndX] = useState(null);
 
     const goTo = useCallback((index) => {
         setActiveSlide((index + carouselSlides.length) % carouselSlides.length);
     }, []);
+
+    const handleTouchStart = (e) => {
+        setTouchEndX(null);
+        setTouchStartX(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchMove = (e) => {
+        setTouchEndX(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchEnd = () => {
+        if (touchStartX === null || touchEndX === null) return;
+        const distance = touchStartX - touchEndX;
+        if (distance > 50) {
+            goTo(activeSlide + 1);
+        } else if (distance < -50) {
+            goTo(activeSlide - 1);
+        }
+    };
 
     const location = useLocation();
     const navigate = useNavigate();
@@ -166,24 +187,36 @@ const Home = () => {
             </header>
 
             {/* ── Features Carousel ── */}
-            <section style={{ background: 'linear-gradient(135deg, #3d1a00 0%, #1a0a00 100%)', paddingTop: '50px', paddingBottom: '70px' }}>
+            <section style={{ paddingTop: '50px', paddingBottom: '40px' }}>
                 {/* Section heading */}
                 <p className="text-center" style={{
-                    color: 'rgba(255,200,120,0.9)',
+                    color: 'var(--primary-brown)',
                     fontWeight: 800,
                     letterSpacing: '6px',
                     textTransform: 'uppercase',
-                    fontSize: '1.8rem',
+                    fontSize: 'clamp(1.4rem, 4vw, 1.8rem)',
                     marginBottom: '32px',
                     marginTop: 0
                 }}>
-                    ✦ &nbsp; Features &nbsp; ✦
+                    <span style={{ color: 'var(--accent-orange)' }}>✦</span>
+                    &nbsp; Features &nbsp;
+                    <span style={{ color: 'var(--accent-orange)' }}>✦</span>
                 </p>
 
                 <div className="container">
                     {/* Carousel wrapper */}
-                    <div style={{ position: 'relative', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
-
+                    <div
+                        style={{
+                            position: 'relative',
+                            borderRadius: '24px',
+                            overflow: 'hidden',
+                            boxShadow: '0 16px 45px rgba(0,0,0,0.14)',
+                            userSelect: 'none'
+                        }}
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                    >
                         {/* Slide */}
                         <div style={{ position: 'relative', height: '480px' }}>
                             <img
@@ -195,7 +228,14 @@ const Home = () => {
                             {/* Left-to-right gradient overlay */}
                             <div style={{
                                 position: 'absolute', inset: 0,
-                                background: 'linear-gradient(90deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)'
+                                background: 'linear-gradient(90deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.25) 60%, transparent 100%)'
+                            }} />
+
+                            {/* Subtle bottom gradient to ensure scroll/slide indicators are crisp */}
+                            <div style={{
+                                position: 'absolute', bottom: 0, left: 0, right: 0, height: '90px',
+                                background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 100%)',
+                                pointerEvents: 'none'
                             }} />
 
                             {/* Caption */}
@@ -206,6 +246,7 @@ const Home = () => {
                                 transform: 'translateY(-50%)',
                                 maxWidth: 'min(460px, 88%)',
                                 textAlign: 'left',
+                                zIndex: 12
                             }}>
                                 <span style={{
                                     display: 'inline-block',
@@ -249,12 +290,53 @@ const Home = () => {
                                             {slide.price}
                                         </span>
                                     )}
-                                    <Link to="/menu" className="btn-brand text-decoration-none" style={{ padding: '10px 26px' }}>
+                                    <Link to="/menu" className="btn-brand text-decoration-none shadow-sm" style={{ padding: '10px 26px', position: 'relative', zIndex: 15 }}>
                                         Order Now
                                     </Link>
                                 </div>
                             </div>
 
+                            {/* ── Scroll Bar / Indicator Pills INSIDE the Card ── */}
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    bottom: '20px',
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '6px 14px',
+                                    borderRadius: '20px',
+                                    background: 'rgba(0, 0, 0, 0.42)',
+                                    backdropFilter: 'blur(8px)',
+                                    WebkitBackdropFilter: 'blur(8px)',
+                                    border: '1px solid rgba(255, 255, 255, 0.18)',
+                                    zIndex: 20
+                                }}
+                            >
+                                {carouselSlides.map((_, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            goTo(i);
+                                        }}
+                                        aria-label={`Go to slide ${i + 1}`}
+                                        style={{
+                                            width: i === activeSlide ? '28px' : '10px',
+                                            height: '10px',
+                                            borderRadius: '5px',
+                                            border: 'none',
+                                            background: i === activeSlide ? 'var(--accent-orange)' : 'rgba(255,255,255,0.45)',
+                                            cursor: 'pointer',
+                                            padding: 0,
+                                            transition: 'all 0.3s ease',
+                                            boxShadow: i === activeSlide ? '0 0 8px rgba(211,84,0,0.7)' : 'none'
+                                        }}
+                                    />
+                                ))}
+                            </div>
                         </div>
 
                         {/* Invisible left click zone — go prev */}
@@ -263,7 +345,7 @@ const Home = () => {
                             style={{
                                 position: 'absolute', top: 0, left: 0,
                                 width: '50%', height: '100%',
-                                cursor: 'pointer', zIndex: 10
+                                cursor: 'pointer', zIndex: 5
                             }}
                         />
 
@@ -273,29 +355,57 @@ const Home = () => {
                             style={{
                                 position: 'absolute', top: 0, right: 0,
                                 width: '50%', height: '100%',
-                                cursor: 'pointer', zIndex: 10
+                                cursor: 'pointer', zIndex: 5
                             }}
                         />
-                    </div>
 
-                    {/* Dots — below the carousel */}
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
-                        {carouselSlides.map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => goTo(i)}
-                                style={{
-                                    width: i === activeSlide ? '28px' : '10px',
-                                    height: '10px',
-                                    borderRadius: '5px',
-                                    border: 'none',
-                                    background: i === activeSlide ? 'var(--accent-orange)' : 'rgba(255,255,255,0.35)',
-                                    cursor: 'pointer',
-                                    padding: 0,
-                                    transition: 'all 0.3s ease'
-                                }}
-                            />
-                        ))}
+                        {/* Desktop Left / Right Navigation Chevrons */}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); goTo(activeSlide - 1); }}
+                            aria-label="Previous slide"
+                            className="d-none d-md-flex align-items-center justify-content-center"
+                            style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '20px',
+                                transform: 'translateY(-50%)',
+                                width: '42px',
+                                height: '42px',
+                                borderRadius: '50%',
+                                border: '1px solid rgba(255,255,255,0.25)',
+                                background: 'rgba(0,0,0,0.35)',
+                                color: '#fff',
+                                backdropFilter: 'blur(6px)',
+                                cursor: 'pointer',
+                                zIndex: 16,
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <i className="bi bi-chevron-left fs-5"></i>
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); goTo(activeSlide + 1); }}
+                            aria-label="Next slide"
+                            className="d-none d-md-flex align-items-center justify-content-center"
+                            style={{
+                                position: 'absolute',
+                                top: '50%',
+                                right: '20px',
+                                transform: 'translateY(-50%)',
+                                width: '42px',
+                                height: '42px',
+                                borderRadius: '50%',
+                                border: '1px solid rgba(255,255,255,0.25)',
+                                background: 'rgba(0,0,0,0.35)',
+                                color: '#fff',
+                                backdropFilter: 'blur(6px)',
+                                cursor: 'pointer',
+                                zIndex: 16,
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <i className="bi bi-chevron-right fs-5"></i>
+                        </button>
                     </div>
                 </div>
             </section>
