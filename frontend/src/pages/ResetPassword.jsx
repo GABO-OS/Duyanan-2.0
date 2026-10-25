@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import duyananBg from '../assets/img/duyanan_bg.webp';
+import duyananBg from '../assets/img/banner/duyanan_bg.webp';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 

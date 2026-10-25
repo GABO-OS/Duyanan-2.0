@@ -1,0 +1,360 @@
+/* ════════════════════════════════════════════════════════════════
+   Duyanan Restaurant — Home Page Premium Styles
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Menu Hero Banner (above sticky header) ── */
+.menu-hero-banner {
+    background: linear-gradient(135deg, #3d1200 0%, #7b2d00 40%, #a04000 100%);
+    padding: 48px 0 60px;
+    position: relative;
+    overflow: hidden;
+}
+
+.menu-hero-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(ellipse at 15% 50%, rgba(255,180,60,0.18) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 30%, rgba(255,120,30,0.12) 0%, transparent 45%);
+    pointer-events: none;
+}
+
+.menu-hero-banner::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: var(--bg-light);
+    clip-path: ellipse(55% 100% at 50% 100%);
+}
+
+/* ── Mode Switcher Tabs inside Hero Banner ── */
+.menu-mode-tabs-wrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 4px 2px;
+}
+.menu-mode-tabs-wrapper::-webkit-scrollbar {
+    display: none;
+}
+
+.menu-mode-tabs {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 50px;
+    padding: 6px 10px;
+    gap: 8px;
+    white-space: nowrap;
+    max-width: 100%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    transition: all 0.2s ease;
+}
+
+.menu-mode-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50px;
+    border: none;
+    font-weight: 700;
+    white-space: nowrap;
+    font-size: 0.86rem;
+    padding: 8px 18px;
+    transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+    flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.88);
+    background: transparent;
+    cursor: pointer;
+    outline: none;
+    user-select: none;
+}
+
+.menu-mode-tab-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.menu-mode-tab-btn.active {
+    background: var(--accent-orange);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(211, 84, 0, 0.4);
+}
+
+.menu-mode-tab-btn:active {
+    transform: scale(0.97);
+}
+
+@media (max-width: 768px) {
+    .menu-mode-tabs {
+        padding: 5px 8px;
+        gap: 6px;
+    }
+    .menu-mode-tab-btn {
+        font-size: 0.82rem;
+        padding: 7px 14px;
+    }
+}
+
+@media (max-width: 576px) {
+    .menu-mode-tabs-wrapper {
+        margin-top: 1.1rem;
+        margin-bottom: 0.4rem;
+    }
+    .menu-mode-tabs {
+        padding: 4px 6px;
+        gap: 4px;
+    }
+    .menu-mode-tab-btn {
+        font-size: 0.78rem;
+        padding: 6px 11px;
+    }
+}
+
+@media (max-width: 380px) {
+    .menu-mode-tabs {
+        padding: 3px 5px;
+        gap: 3px;
+    }
+    .menu-mode-tab-btn {
+        font-size: 0.74rem;
+        padding: 6px 8px;
+    }
+    .tab-event-word {
+        display: none;
+    }
+}
+
+/* ── Category Header Divider ── */
+.category-section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid rgba(160,64,0,0.10);
+}
+
+.category-section-header::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(160,64,0,0.10) 0%, transparent 100%);
+}
+
+/* ── Menu Product Card Premium ── */
+.menu-product-card {
+    background: #fff;
+    border-radius: 18px !important;
+    box-shadow: 0 2px 14px rgba(110,44,0,0.06) !important;
+    border: 1px solid rgba(160,64,0,0.07) !important;
+    transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.28s ease, border-color 0.28s ease !important;
+    overflow: hidden;
+}
+
+.menu-product-card:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 12px 36px rgba(110,44,0,0.13) !important;
+    border-color: rgba(211,84,0,0.18) !important;
+}
+
+.menu-card-img-wrap {
+    width: 82px;
+    height: 82px;
+    border-radius: 14px;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.10);
+    transition: transform 0.35s ease;
+}
+
+.menu-product-card:hover .menu-card-img-wrap {
+    transform: scale(1.04);
+}
+
+/* ── Add to Cart button in menu card ── */
+.menu-add-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 16px;
+    border-radius: 50px;
+    border: 1.5px solid rgba(211,84,0,0.22);
+    background: rgba(211,84,0,0.07);
+    color: var(--accent-orange);
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    min-height: 36px;
+    white-space: nowrap;
+}
+
+.menu-add-btn:hover {
+    background: var(--accent-orange);
+    border-color: var(--accent-orange);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(211,84,0,0.28);
+    transform: translateY(-1px);
+}
+
+.menu-add-btn:disabled, .menu-add-btn.disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ── Guest Stepper ── */
+.guest-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    border: 1.5px solid rgba(160,64,0,0.2);
+    border-radius: 50px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.guest-stepper button {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    color: var(--primary-brown);
+    font-size: 1.2rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.18s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.guest-stepper button:hover {
+    background: rgba(211,84,0,0.08);
+}
+
+.guest-stepper button:active {
+    background: rgba(211,84,0,0.16);
+}
+
+.guest-stepper .guest-count {
+    padding: 0 16px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--primary-brown);
+    border-left: 1px solid rgba(160,64,0,0.15);
+    border-right: 1px solid rgba(160,64,0,0.15);
+    min-width: 96px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* ── Cart Tracker Banner ── */
+.order-tracker-banner {
+    background: linear-gradient(135deg, #fff9f5 0%, #fff3e8 100%);
+    border: 1.5px solid rgba(211,84,0,0.14);
+    border-radius: 20px;
+    padding: 24px 28px;
+    box-shadow: 0 4px 20px rgba(211,84,0,0.07);
+    margin-bottom: 28px;
+}
+
+/* ── Scrollbar Fade edges on category pills ── */
+.category-pills-outer {
+    position: relative;
+}
+
+.category-pills-outer::before,
+.category-pills-outer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 28px;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.category-pills-outer::before {
+    left: 36px;
+    background: linear-gradient(90deg, rgba(253,251,247,0.95) 0%, transparent 100%);
+}
+
+.category-pills-outer::after {
+    right: 36px;
+    background: linear-gradient(-90deg, rgba(253,251,247,0.95) 0%, transparent 100%);
+}
+
+/* ── Reservation page enhancements ── */
+.ambiance-card-premium {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2.5px solid transparent;
+    transition: border-color 0.25s ease, transform 0.28s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.10);
+}
+
+.ambiance-card-premium.selected {
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 0 3px rgba(211,84,0,0.22), 0 10px 32px rgba(211,84,0,0.20);
+    transform: scale(1.03);
+}
+
+.ambiance-card-premium:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 14px 36px rgba(0,0,0,0.18);
+}
+
+/* ── Home Page Feature animations ── */
+@keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+    animation: slideUpFade 0.6s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+/* ── Responsive ── */
+@media (max-width: 576px) {
+    .menu-hero-banner { padding: 32px 0 48px; }
+    .menu-hero-banner::after { height: 28px; }
+    .menu-card-img-wrap { width: 70px; height: 70px; }
+    .order-tracker-banner { padding: 16px; }
+    .category-pills-outer::before { width: 20px; }
+    .category-pills-outer::after  { width: 20px; }
+}
+
+/* ── Atmosphere Showcase Card ── */
+.atmosphere-showcase-card {
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease;
+}
+.atmosphere-showcase-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 26px 50px rgba(0, 0, 0, 0.55) !important;
+}
+.atmosphere-showcase-card img {
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.atmosphere-showcase-card:hover img {
+    transform: scale(1.05);
+}

@@ -26,7 +26,7 @@ export const CartProvider = ({ children }) => {
         }
     }, [reservationId]);
 
-    const addToCart = (product, variant = null, variantPrice = null) => {
+    const addToCart = (product, variant = null, variantPrice = null, quantity = 1) => {
         setCart((prevCart) => {
             const cartItemId = `${product.id}-${variant || 'base'}`;
             const existingItem = prevCart.find((item) => item.cartItemId === cartItemId);
@@ -35,10 +35,10 @@ export const CartProvider = ({ children }) => {
 
             if (existingItem) {
                 return prevCart.map((item) =>
-                    item.cartItemId === cartItemId ? { ...item, quantity: item.quantity + 1 } : item
+                    item.cartItemId === cartItemId ? { ...item, quantity: item.quantity + quantity } : item
                 );
             }
-            return [...prevCart, { ...product, cartItemId, variant, price: priceToUse, quantity: 1 }];
+            return [...prevCart, { ...product, cartItemId, variant, price: priceToUse, quantity }];
         });
     };
 

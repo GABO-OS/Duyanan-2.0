@@ -6,29 +6,46 @@ import Swal from 'sweetalert2';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-// Placeholder imports - using existing images. 
-// You can replace these files in the assets folder with the 3 images you uploaded!
-import bg1 from '../assets/img/duyanan_bg.webp';
-import bg2 from '../assets/img/sfc.webp';
-import bg3 from '../assets/img/habhab.webp';
+import bg1 from '../assets/img/banner/duyanan_bg.webp';
+import bg2 from '../assets/img/menu/sfc.webp';
+import bg3 from '../assets/img/menu/habhab.webp';
 
 const bgImages = [bg1, bg2, bg3];
+
+const ambianceOptions = [
+    { value: 'outdoor', label: 'Al Fresco Garden',     emoji: '🌿', desc: 'Open-air under fairy lights', img: bg1 },
+    { value: 'duyan',   label: 'Bamboo Duyan Gazebo',  emoji: '🪢', desc: 'Rustic hammocks & garden',   img: bg3 },
+    { value: 'indoor',  label: 'Indoor Fiesta Hall',   emoji: '🏠', desc: 'Air-cooled banquet dining',  img: bg2 },
+];
+
+const timeSlots = ['10:30 AM', '11:30 AM', '12:30 PM', '1:30 PM', '6:00 PM', '7:00 PM', '8:00 PM'];
+
+const timeSlotToValue = (label) => {
+    const [time, meridian] = label.split(' ');
+    const [h, m] = time.split(':').map(Number);
+    let hours = h;
+    if (meridian === 'PM' && h !== 12) hours += 12;
+    if (meridian === 'AM' && h === 12) hours = 0;
+    return `${String(hours).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
 
 const Reservations = () => {
     const navigate = useNavigate();
     const [currentBg, setCurrentBg] = useState(0);
     const { setReservationId } = useCart();
+    const [selectedAmbiance, setSelectedAmbiance] = useState('');
+    const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
+    const [guestCount, setGuestCount] = useState(2);
     const [formData, setFormData] = useState({
         seatingType: '',
         date: '',
         time: '',
-        guests: '',
+        guests: '2',
         request: '',
         eventType: ''
     });
     const { user, isAuthenticated } = useAuth();
 
-    // Handle background slider
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentBg((prev) => (prev + 1) % bgImages.length);
@@ -37,52 +54,52 @@ const Reservations = () => {
     }, []);
 
     const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleAmbianceSelect = (value) => {
+        setSelectedAmbiance(value);
+        setFormData(prev => ({ ...prev, seatingType: value }));
+    };
+
+    const handleTimeSlotSelect = (slot) => {
+        setSelectedTimeSlot(slot);
+        setFormData(prev => ({ ...prev, time: timeSlotToValue(slot) }));
+    };
+
+    const handleGuestChange = (delta) => {
+        const next = Math.min(Math.max(1, guestCount + delta), 30);
+        setGuestCount(next);
+        setFormData(prev => ({ ...prev, guests: String(next) }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!isAuthenticated) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Please Log In',
-                text: 'You need to be logged in to make a reservation.',
-                confirmButtonColor: 'var(--primary-brown)'
-            });
+            Swal.fire({ icon: 'warning', title: 'Please Log In', text: 'You need to be logged in to make a reservation.', confirmButtonColor: 'var(--primary-brown)' });
             navigate('/login');
             return;
         }
 
         const selectedDateTime = new Date(`${formData.date}T${formData.time}`);
         if (selectedDateTime < new Date()) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid Date/Time',
-                text: 'Reservation date and time cannot be in the past!',
-                confirmButtonColor: 'var(--primary-brown)'
-            });
+            Swal.fire({ icon: 'error', title: 'Invalid Date/Time', text: 'Reservation date and time cannot be in the past!', confirmButtonColor: 'var(--primary-brown)' });
             return;
         }
 
         try {
             const response = await fetch(`${API_URL}/api/reservations`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.token}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.token}` },
                 body: JSON.stringify({
                     guestName: `${user.firstName} ${user.lastName}`,
-                    contactNumber: "N/A",
+                    contactNumber: 'N/A',
                     reservationDate: formData.date,
                     reservationTime: formData.time,
-                    numberOfGuests: formData.guests,
+                    numberOfGuests: guestCount,
                     specialRequests: formData.request,
-                    seatingType: formData.seatingType,
+                    seatingType: selectedAmbiance || formData.seatingType,
                     eventType: formData.eventType
                 })
             });
@@ -100,34 +117,23 @@ const Reservations = () => {
                     confirmButtonText: '🍽️ Yes, Browse Menu',
                     cancelButtonText: 'No, Thanks'
                 });
-
-                if (result.isConfirmed && data.reservationId) {
-                    setReservationId(data.reservationId.toString());
+                if (result.isConfirmed) {
+                    if (setReservationId) setReservationId(data.reservation?._id || data._id);
                     navigate('/menu');
                 } else {
                     navigate('/');
                 }
             } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Reservation Failed',
-                    text: data.error || 'Something went wrong. Please try again.',
-                    confirmButtonColor: 'var(--primary-brown)'
-                });
+                Swal.fire({ icon: 'error', title: 'Reservation Failed', text: data.message || 'Something went wrong.', confirmButtonColor: 'var(--primary-brown)' });
             }
         } catch (error) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Connection Error',
-                text: 'Could not connect to the server. Please check your internet.',
-                confirmButtonColor: 'var(--primary-brown)'
-            });
+            Swal.fire({ icon: 'error', title: 'Connection Error', text: 'Unable to connect. Please try again.', confirmButtonColor: 'var(--primary-brown)' });
         }
     };
 
     const inputStyle = {
-        borderRadius: '6px',
-        border: '1px solid #ced4da',
+        borderRadius: '12px',
+        border: '1.5px solid rgba(160, 64, 0, 0.2)',
         backgroundColor: '#fff',
         padding: '12px 16px',
         fontSize: '1rem',
@@ -138,65 +144,76 @@ const Reservations = () => {
     };
 
     const labelStyle = {
-        color: '#495057',
-        fontWeight: '600',
-        fontSize: '0.9rem',
-        marginBottom: '6px',
-        display: 'block'
+        color: 'var(--primary-brown)',
+        fontWeight: '700',
+        fontSize: '0.85rem',
+        marginBottom: '8px',
+        display: 'block',
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase'
     };
 
     return (
         <div className="container-fluid p-0" style={{ minHeight: '100vh', display: 'flex' }}>
             <div className="row g-0 w-100">
-                {/* Left Side: Background Slider */}
-                <div className="col-lg-7 d-none d-lg-block position-relative" style={{ minHeight: '100vh', overflow: 'hidden' }}>
+
+                {/* ── Left: Background Slider ── */}
+                <div className="col-lg-6 d-none d-lg-block position-relative" style={{ minHeight: '100vh', overflow: 'hidden' }}>
                     {bgImages.map((img, index) => (
-                        <div 
+                        <div
                             key={index}
                             style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: '100%',
+                                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                                 backgroundImage: `url(${img})`,
-                                backgroundSize: 'cover',
-                                backgroundPosition: 'center',
+                                backgroundSize: 'cover', backgroundPosition: 'center',
                                 opacity: index === currentBg ? 1 : 0,
-                                transition: 'opacity 1s ease-in-out',
+                                transition: 'opacity 1.2s ease-in-out',
                             }}
                         />
                     ))}
-                    {/* Dark gradient overlay for smooth transition into the form */}
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%)' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.58) 100%)' }} />
+                    <div style={{ position: 'absolute', bottom: '60px', left: '48px', right: '48px', color: '#fff', zIndex: 2 }}>
+                        <div style={{ fontSize: '2.6rem', marginBottom: '14px' }}>🌿</div>
+                        <h2 style={{ fontWeight: 800, fontSize: '2rem', textShadow: '0 2px 14px rgba(0,0,0,0.5)', marginBottom: '12px', lineHeight: 1.2 }}>
+                            Reserve Your Spot at Duyanan
+                        </h2>
+                        <p style={{ opacity: 0.88, fontSize: '1rem', lineHeight: 1.65, textShadow: '0 1px 4px rgba(0,0,0,0.4)', maxWidth: '380px' }}>
+                            Book a table in our cozy al fresco garden, relaxing bamboo hammock gazebo, or air-cooled indoor fiesta hall.
+                        </p>
+                        {/* Ambiance preview dots */}
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+                            {bgImages.map((_, i) => (
+                                <div key={i} style={{ width: i === currentBg ? '24px' : '8px', height: '8px', borderRadius: '4px', background: i === currentBg ? 'var(--accent-orange)' : 'rgba(255,255,255,0.4)', transition: 'all 0.4s ease' }} />
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
-                {/* Right Side: Form Container */}
-                <div className="col-12 col-lg-5 d-flex flex-column align-items-center justify-content-center py-4 px-3 px-sm-4" style={{ backgroundColor: '#e9ecef', minHeight: '100vh' }}>
-                    
-                    {/* The form wrapper */}
-                    <div style={{ width: '100%', maxWidth: '450px', marginTop: 'calc(var(--nav-height) + 12px)' }}>
-                        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                            <div style={{ fontSize: '2.5rem', marginBottom: '8px', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }}>🍃</div>
-                            <h2 style={{ color: 'var(--primary-brown)', fontWeight: 800, margin: 0, letterSpacing: '0.02em', fontSize: 'clamp(1.5rem, 4vw, 2rem)' }}>
-                                Duyanan Reservations
+                {/* ── Right: Premium Form ── */}
+                <div
+                    className="col-12 col-lg-6 d-flex flex-column align-items-center justify-content-start py-4 px-3 px-sm-4"
+                    style={{ background: 'var(--gradient-bg)', minHeight: '100vh', overflowY: 'auto' }}
+                >
+                    <div style={{ width: '100%', maxWidth: '480px', marginTop: 'calc(var(--nav-height) + 20px)', paddingBottom: '48px' }}>
+
+                        {/* Header */}
+                        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+                            <div style={{ fontSize: '2.8rem', marginBottom: '8px', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.12))' }}>🍃</div>
+                            <h2 style={{ color: 'var(--primary-brown)', fontWeight: 800, margin: 0, fontSize: 'clamp(1.5rem, 4vw, 2rem)' }}>
+                                Book a Reservation
                             </h2>
-                            <p style={{ color: '#555', marginTop: '6px', fontSize: '0.9rem' }}>
-                                Book a table to start your session
+                            <p style={{ color: '#777', marginTop: '8px', fontSize: '0.92rem' }}>
+                                Choose your dining experience below
                             </p>
                         </div>
 
-                        {/* Guest banner */}
+                        {/* Guest login banner */}
                         {!isAuthenticated && (
                             <div style={{
                                 background: 'linear-gradient(90deg, #7B3F00, #D35400)',
-                                color: '#fff',
-                                borderRadius: '10px',
-                                padding: '14px 20px',
-                                marginBottom: '24px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px',
+                                color: '#fff', borderRadius: '14px',
+                                padding: '14px 20px', marginBottom: '24px',
+                                display: 'flex', alignItems: 'center', gap: '12px',
                                 boxShadow: '0 4px 14px rgba(211,84,0,0.25)'
                             }}>
                                 <i className="bi bi-shield-lock-fill" style={{ fontSize: '1.5rem', flexShrink: 0 }}></i>
@@ -211,19 +228,46 @@ const Reservations = () => {
                                 </div>
                             </div>
                         )}
-                        
+
                         <form onSubmit={handleSubmit}>
-                            {/* Event Type */}
-                            <div className="mb-3">
-                                <label style={labelStyle}>Event Type</label>
-                                <select
-                                    name="eventType"
-                                    value={formData.eventType}
-                                    onChange={handleChange}
-                                    required
-                                    style={inputStyle}
-                                >
-                                    <option value="" disabled hidden style={{ color: '#aaa' }}>Select Event Type</option>
+
+                            {/* ── Visual Ambiance Selector ── */}
+                            <div className="mb-4">
+                                <label style={labelStyle}>🌿 Choose Your Atmosphere</label>
+                                <div className="row g-2">
+                                    {ambianceOptions.map(opt => (
+                                        <div className="col-4" key={opt.value}>
+                                            <div
+                                                className={`ambiance-card${selectedAmbiance === opt.value ? ' selected' : ''}`}
+                                                onClick={() => handleAmbianceSelect(opt.value)}
+                                                role="button" tabIndex={0}
+                                                onKeyDown={e => e.key === 'Enter' && handleAmbianceSelect(opt.value)}
+                                                id={`ambiance-${opt.value}`}
+                                            >
+                                                <img src={opt.img} alt={opt.label} />
+                                                <div className="ambiance-label">
+                                                    <div style={{ fontSize: '1rem', marginBottom: '2px' }}>{opt.emoji}</div>
+                                                    <div style={{ fontSize: '0.72rem', lineHeight: 1.2, fontWeight: 700 }}>{opt.label}</div>
+                                                </div>
+                                                <div className="ambiance-check">
+                                                    <i className="bi bi-check2"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {selectedAmbiance && (
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--accent-orange)', marginTop: '8px', fontWeight: 600, marginBottom: 0 }}>
+                                        ✓ {ambianceOptions.find(a => a.value === selectedAmbiance)?.desc}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* ── Event Type ── */}
+                            <div className="mb-4">
+                                <label style={labelStyle}>🎉 Event Type</label>
+                                <select name="eventType" value={formData.eventType} onChange={handleChange} required style={inputStyle} id="res-event-type">
+                                    <option value="" disabled hidden>Select Event Type</option>
                                     <option value="Casual Dining 🍽️">Casual Dining 🍽️</option>
                                     <option value="Birthday Celebration 🎂">Birthday Celebration 🎂</option>
                                     <option value="Anniversary 💑">Anniversary 💑</option>
@@ -233,100 +277,82 @@ const Reservations = () => {
                                 </select>
                             </div>
 
-                            {/* Seating Type */}
-                            <div className="mb-3">
-                                <label style={labelStyle}>Seating Type</label>
-                                <select
-                                    name="seatingType"
-                                    value={formData.seatingType}
-                                    onChange={handleChange}
-                                    required
-                                    style={inputStyle}
-                                >
-                                    <option value="" disabled hidden style={{ color: '#aaa' }}>Select Seating Type</option>
-                                    <option value="indoor">🏠 Indoor</option>
-                                    <option value="outdoor">🌿 Outdoor</option>
-                                </select>
-                            </div>
-
-                            {/* Date & Time row */}
-                            <div className="row g-3 mb-3">
-                                <div className="col-12 col-sm-6">
-                                    <label style={labelStyle}>Date</label>
-                                    <input
-                                        type="date"
-                                        name="date"
-                                        value={formData.date}
-                                        onChange={handleChange}
-                                        required
-                                        min={new Date().toLocaleDateString('en-CA')}
-                                        style={inputStyle}
-                                    />
-                                </div>
-                                <div className="col-12 col-sm-6">
-                                    <label style={labelStyle}>Time</label>
-                                    <input
-                                        type="time"
-                                        name="time"
-                                        value={formData.time}
-                                        onChange={handleChange}
-                                        required
-                                        style={inputStyle}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Guests */}
-                            <div className="mb-3">
-                                <label style={labelStyle}>Number of Guests</label>
+                            {/* ── Date ── */}
+                            <div className="mb-4">
+                                <label style={labelStyle}>📅 Date</label>
                                 <input
-                                    type="number"
-                                    name="guests"
-                                    value={formData.guests}
-                                    onChange={handleChange}
-                                    required
-                                    min="1"
-                                    placeholder="e.g. 4"
+                                    type="date" name="date" id="res-date"
+                                    value={formData.date} onChange={handleChange} required
+                                    min={new Date().toLocaleDateString('en-CA')}
                                     style={inputStyle}
                                 />
                             </div>
 
-                            {/* Special Request */}
+                            {/* ── Time Slot Chips ── */}
                             <div className="mb-4">
-                                <label style={labelStyle}>Special Request <span style={{ color: '#888', fontWeight: 400 }}>(optional)</span></label>
-                                <textarea
-                                    name="request"
-                                    value={formData.request}
-                                    onChange={handleChange}
-                                    rows="3"
-                                    placeholder="e.g. Birthday celebration, dietary restrictions..."
-                                    style={{ ...inputStyle, resize: 'none' }}
-                                ></textarea>
+                                <label style={labelStyle}>🕐 Preferred Time</label>
+                                <div className="d-flex flex-wrap gap-2 mb-2">
+                                    {timeSlots.map(slot => (
+                                        <button
+                                            type="button" key={slot}
+                                            className={`time-slot-chip${selectedTimeSlot === slot ? ' active' : ''}`}
+                                            onClick={() => handleTimeSlotSelect(slot)}
+                                            id={`time-slot-${slot.replace(/[:\s]/g, '-')}`}
+                                        >
+                                            {slot}
+                                        </button>
+                                    ))}
+                                </div>
+                                <input
+                                    type="time" name="time" id="res-time"
+                                    value={formData.time}
+                                    onChange={e => { setSelectedTimeSlot(''); handleChange(e); }}
+                                    style={{ ...inputStyle, fontSize: '0.88rem', padding: '10px 14px' }}
+                                />
                             </div>
 
-                            {/* Submit */}
-                            <button 
+                            {/* ── Guest Stepper ── */}
+                            <div className="mb-4">
+                                <label style={labelStyle}>👥 Number of Guests</label>
+                                <div className="d-flex align-items-center gap-3">
+                                    <div className="guest-stepper" id="guest-stepper">
+                                        <button type="button" onClick={() => handleGuestChange(-1)} id="guest-dec">−</button>
+                                        <span className="guest-count">{guestCount} {guestCount === 1 ? 'Guest' : 'Guests'}</span>
+                                        <button type="button" onClick={() => handleGuestChange(1)} id="guest-inc">+</button>
+                                    </div>
+                                    <span style={{ color: '#999', fontSize: '0.82rem' }}>Max 30 guests</span>
+                                </div>
+                            </div>
+
+                            {/* ── Special Request ── */}
+                            <div className="mb-4">
+                                <label style={labelStyle}>
+                                    📝 Special Request{' '}
+                                    <span style={{ color: '#aaa', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+                                </label>
+                                <textarea
+                                    name="request" id="res-request"
+                                    value={formData.request} onChange={handleChange}
+                                    rows="3"
+                                    placeholder="e.g. Birthday decoration, dietary restrictions, high chair..."
+                                    style={{ ...inputStyle, resize: 'none' }}
+                                />
+                            </div>
+
+                            {/* ── Submit ── */}
+                            <button
                                 type="submit"
-                                style={{ 
-                                    width: '100%', 
-                                    padding: '12px 0', 
-                                    minHeight: '48px',
-                                    fontSize: '1.1rem', 
-                                    borderRadius: '8px', 
-                                    backgroundColor: isAuthenticated ? 'var(--accent-orange)' : '#aaa', 
-                                    color: '#fff', 
-                                    border: 'none', 
-                                    fontWeight: 'bold',
-                                    boxShadow: isAuthenticated ? '0 4px 6px rgba(211, 84, 0, 0.2)' : 'none',
-                                    transition: 'background-color 0.2s',
+                                id="res-submit"
+                                className="btn-brand w-100 justify-content-center shadow"
+                                style={{
+                                    padding: '14px 0', fontSize: '1.05rem',
+                                    borderRadius: '14px', minHeight: '52px',
+                                    opacity: isAuthenticated ? 1 : 0.72,
                                     cursor: isAuthenticated ? 'pointer' : 'not-allowed',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '8px'
                                 }}
                             >
                                 {!isAuthenticated && <i className="bi bi-lock-fill"></i>}
+                                <i className="bi bi-calendar2-check"></i>
                                 {isAuthenticated ? 'Confirm Reservation' : 'Login to Reserve'}
                             </button>
                         </form>

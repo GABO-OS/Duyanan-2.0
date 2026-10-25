@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import '../styles/about.css';
-import duyananBg from '../assets/img/duyanan_bg.webp';
+import duyananBg from '../assets/img/banner/duyanan_bg.webp';
 
 // Fallback images for hardcoded events (used when API is unreachable)
-import eventCatering from '../assets/img/event_catering.webp';
-import eventFiesta from '../assets/img/event_fiesta.webp';
-import eventOpening from '../assets/img/event_opening.webp';
-import eventCooking from '../assets/img/event_cooking.webp';
-import eventBirthday from '../assets/img/event_birthday.webp';
-import eventCharity from '../assets/img/event_charity.webp';
+import eventCatering from '../assets/img/events/event_catering.webp';
+import eventFiesta from '../assets/img/events/event_fiesta.webp';
+import eventOpening from '../assets/img/events/event_opening.webp';
+import eventCooking from '../assets/img/events/event_cooking.webp';
+import eventBirthday from '../assets/img/events/event_birthday.webp';
+import eventCharity from '../assets/img/events/event_charity.webp';
 
 const API_URL = import.meta.env.VITE_API_URL;
 

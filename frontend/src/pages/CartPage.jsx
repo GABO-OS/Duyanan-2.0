@@ -981,13 +981,50 @@ const CartPage = () => {
                                 <h3 style={{ color: 'var(--primary-brown)', fontWeight: 800, marginBottom: 8 }}>
                                     {orderResult?.isDineIn ? 'Dine-In Pre-Order Placed! 🍽️' : 'Order Placed Successfully! 🎉'}
                                 </h3>
-                                <p style={{ color: '#666', fontSize: '0.95rem', maxWidth: 450, margin: '0 auto 24px' }}>
+                                <p style={{ color: '#666', fontSize: '0.95rem', maxWidth: 450, margin: '0 auto 20px' }}>
                                     {orderResult?.isDineIn
                                         ? 'Thank you! Your pre-ordered food is confirmed and will be served at your reserved table upon your arrival.'
                                         : orderResult?.isPickup
                                             ? 'Thank you! Your order is confirmed. Please visit Duyanan Restaurant to pick it up once it\'s ready.'
                                             : 'Thank you for your purchase. Your delicious meal is being prepared and will be delivered shortly.'}
                                 </p>
+
+                                {/* ══════════════════════════════════════════
+                                    SCREEN 4 — Live Order Tracker Timeline
+                                ══════════════════════════════════════════ */}
+                                <div className="order-tracker-banner my-4 text-start" style={{ maxWidth: '580px', margin: '0 auto' }}>
+                                    <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                                        <div className="d-flex align-items-center gap-2">
+                                            <span className="live-pulse-dot" style={{ width: '10px', height: '10px' }}></span>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-brown)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                                                Live Order Tracker
+                                            </span>
+                                        </div>
+                                        <span className="badge rounded-pill" style={{ background: '#fff3e0', color: 'var(--accent-orange)', border: '1px solid #ffe0b2', padding: '6px 14px', fontSize: '0.78rem', fontWeight: 700 }}>
+                                            🔥 Sizzling in Kitchen
+                                        </span>
+                                    </div>
+                                    <div className="order-timeline">
+                                        <div className="order-step done">
+                                            <div className="order-step-dot"><i className="bi bi-check2"></i></div>
+                                            <span className="order-step-label">1. Order Confirmed</span>
+                                        </div>
+                                        <div className="order-step-line done"></div>
+                                        <div className="order-step active">
+                                            <div className="order-step-dot">🍳</div>
+                                            <span className="order-step-label">2. Sizzling in Kitchen</span>
+                                        </div>
+                                        <div className="order-step-line"></div>
+                                        <div className="order-step">
+                                            <div className="order-step-dot">
+                                                {orderResult?.isDineIn ? '🍽️' : orderResult?.isPickup ? '🛍️' : '🛵'}
+                                            </div>
+                                            <span className="order-step-label">
+                                                3. {orderResult?.isDineIn ? 'Served at Table' : orderResult?.isPickup ? 'Ready for Pick-Up' : 'Out for Delivery'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 {orderResult && (
                                     <div className="receipt-box">

@@ -76,17 +76,18 @@
 
 /* Responsive Product Card on Menu Page */
 .menu-product-card {
-  border-radius: 14px;
+  border-radius: 18px;
   background: #ffffff;
-  border: 1px solid rgba(0,0,0,0.06);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid rgba(160, 64, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(110, 44, 0, 0.04);
+  transition: transform 0.25s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.25s cubic-bezier(0.165, 0.84, 0.44, 1), border-color 0.25s ease;
   overflow: hidden;
 }
 
 .menu-product-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(160, 64, 0, 0.08);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(160, 64, 0, 0.12);
+  border-color: rgba(211, 84, 0, 0.25);
 }
 
 .menu-card-img-wrap {
@@ -94,8 +95,16 @@
   height: 120px;
   flex-shrink: 0;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fdfbf7;
+}
+
+.menu-card-img-wrap img {
+  transition: transform 0.4s ease;
+}
+
+.menu-product-card:hover .menu-card-img-wrap img {
+  transform: scale(1.08);
 }
 
 @media (max-width: 575px) {
@@ -104,5 +113,47 @@
     height: 88px;
     border-radius: 8px;
   }
+}
+
+/* Live Pulse & Glow Effects */
+@keyframes status-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(46, 204, 113, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
+  }
+}
+
+.live-pulse-dot {
+  width: 9px;
+  height: 9px;
+  background-color: #2ecc71;
+  border-radius: 50%;
+  animation: status-pulse 2s infinite;
+}
+
+.bestseller-card {
+  transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  border: 1px solid rgba(160, 64, 0, 0.08) !important;
+}
+
+.bestseller-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(160, 64, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+}
+
+.bestseller-card .card-img-wrap img {
+  transition: transform 0.5s ease;
+}
+
+.bestseller-card:hover .card-img-wrap img {
+  transform: scale(1.06);
 }
 
