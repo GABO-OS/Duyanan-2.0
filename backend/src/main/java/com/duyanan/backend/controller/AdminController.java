@@ -3,6 +3,8 @@ package com.duyanan.backend.controller;
 import com.duyanan.backend.model.*;
 import com.duyanan.backend.repository.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -20,6 +23,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
+
+    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
 
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
@@ -59,47 +64,68 @@ public class AdminController {
 
     @PostMapping("/products")
     public ResponseEntity<?> createProduct(@RequestBody Product product) {
-        Product saved = productRepository.save(product);
-        return ResponseEntity.ok(saved);
+        try {
+            if (product.getId() != null && product.getId() <= 0) {
+                product.setId(null);
+            }
+            if (product.getCustomCombos() == null) {
+                product.setCustomCombos(new ArrayList<>());
+            }
+            Product saved = productRepository.save(product);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            log.error("Failed to create product: ", e);
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to create product: " + e.getMessage()));
+        }
     }
 
     @PutMapping("/products/{id}")
     public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody Product product) {
-        return productRepository.findById(id).map(existing -> {
-            existing.setName(product.getName());
-            existing.setPriceSolo(product.getPriceSolo());
-            existing.setPriceALaCarte(product.getPriceALaCarte());
-            existing.setPriceALaCarte2(product.getPriceALaCarte2());
-            existing.setPrice1Liter(product.getPrice1Liter());
-            existing.setPrice1Point5Liter(product.getPrice1Point5Liter());
-            existing.setPrice2Liter(product.getPrice2Liter());
-            existing.setDescription(product.getDescription());
-            
-            if (product.getImageUrl() != null && !product.getImageUrl().equals(existing.getImageUrl())) {
-                deleteOldImage(existing.getImageUrl());
-            }
-            existing.setImageUrl(product.getImageUrl());
-            
-            existing.setCategory(product.getCategory());
-            existing.setFlavors(product.getFlavors());
-            
-            if (product.getCustomCombos() != null) {
-                existing.getCustomCombos().clear();
-                existing.getCustomCombos().addAll(product.getCustomCombos());
-            }
+        try {
+            return productRepository.findById(id).map(existing -> {
+                existing.setName(product.getName());
+                existing.setPriceSolo(product.getPriceSolo());
+                existing.setPriceALaCarte(product.getPriceALaCarte());
+                existing.setPriceALaCarte2(product.getPriceALaCarte2());
+                existing.setPrice1Liter(product.getPrice1Liter());
+                existing.setPrice1Point5Liter(product.getPrice1Point5Liter());
+                existing.setPrice2Liter(product.getPrice2Liter());
+                existing.setDescription(product.getDescription());
+                
+                if (product.getImageUrl() != null && !product.getImageUrl().equals(existing.getImageUrl())) {
+                    deleteOldImage(existing.getImageUrl());
+                }
+                existing.setImageUrl(product.getImageUrl());
+                
+                existing.setCategory(product.getCategory());
+                existing.setFlavors(product.getFlavors());
+                
+                if (product.getCustomCombos() != null) {
+                    existing.getCustomCombos().clear();
+                    existing.getCustomCombos().addAll(product.getCustomCombos());
+                }
 
-            productRepository.save(existing);
-            return ResponseEntity.ok(existing);
-        }).orElse(ResponseEntity.notFound().build());
+                productRepository.save(existing);
+                return ResponseEntity.ok(existing);
+            }).orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            log.error("Failed to update product id {}: ", id, e);
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to update product: " + e.getMessage()));
+        }
     }
 
     @DeleteMapping("/products/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
-        return productRepository.findById(id).map(product -> {
-            deleteOldImage(product.getImageUrl());
-            productRepository.deleteById(id);
-            return ResponseEntity.ok(Map.of("message", "Product deleted successfully."));
-        }).orElse(ResponseEntity.notFound().build());
+        try {
+            return productRepository.findById(id).map(product -> {
+                deleteOldImage(product.getImageUrl());
+                productRepository.deleteById(id);
+                return ResponseEntity.ok(Map.of("message", "Product deleted successfully."));
+            }).orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            log.error("Failed to delete product id {}: ", id, e);
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to delete product: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/products/upload")

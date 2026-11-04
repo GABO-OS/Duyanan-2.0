@@ -300,6 +300,43 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/admin/users' && method === 'GET') {
         return sendJSON(res, 200, users);
     }
+    if (pathname === '/api/admin/products' && method === 'POST') {
+        const body = await getRequestBody(req);
+        const newProduct = {
+            id: products.length > 0 ? Math.max(...products.map(p => p.id || 0)) + 1 : 1,
+            name: body.name || 'New Item',
+            priceSolo: body.priceSolo || 0,
+            priceALaCarte: body.priceALaCarte || 0,
+            priceALaCarte2: body.priceALaCarte2 || 0,
+            price1Liter: body.price1Liter || 0,
+            price1Point5Liter: body.price1Point5Liter || 0,
+            price2Liter: body.price2Liter || 0,
+            description: body.description || '',
+            imageUrl: body.imageUrl || '',
+            category: body.category || 'Rice Meals',
+            flavors: body.flavors || '',
+            customCombos: body.customCombos || []
+        };
+        products.push(newProduct);
+        return sendJSON(res, 200, newProduct);
+    }
+    const adminProdMatch = pathname.match(/^\/api\/admin\/products\/(\d+)$/);
+    if (adminProdMatch && method === 'PUT') {
+        const id = parseInt(adminProdMatch[1], 10);
+        const body = await getRequestBody(req);
+        const index = products.findIndex(p => p.id === id);
+        if (index === -1) return sendJSON(res, 404, { error: 'Product not found' });
+        products[index] = { ...products[index], ...body, id };
+        return sendJSON(res, 200, products[index]);
+    }
+    if (adminProdMatch && method === 'DELETE') {
+        const id = parseInt(adminProdMatch[1], 10);
+        products = products.filter(p => p.id !== id);
+        return sendJSON(res, 200, { message: 'Product deleted successfully.' });
+    }
+    if (pathname === '/api/admin/products/upload' && method === 'POST') {
+        return sendJSON(res, 200, { imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500' });
+    }
     if (pathname === '/api/admin/products' && method === 'GET') {
         return sendJSON(res, 200, products);
     }

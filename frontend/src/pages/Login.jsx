@@ -11,9 +11,15 @@ const Login = () => {
     const [credentials, setCredentials] = useState({ email: '', password: '', rememberMe: false });
     const [showPassword, setShowPassword] = useState(false);
     const [loginError, setLoginError] = useState('');
+    const [serverNotice, setServerNotice] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
     const { login, isAuthenticated, user } = useAuth();
+
+    // Pre-warm backend container if sleeping on Render
+    useEffect(() => {
+        fetch(`${API_URL}/api/health`).catch(() => {});
+    }, []);
 
     // Redirect if already logged in
     useEffect(() => {
@@ -135,19 +141,42 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoginError('');
+        setServerNotice('');
         setIsLoading(true);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+        // Notify user if backend is waking up from Render cold sleep
+        const warmUpTimer = setTimeout(() => {
+            setServerNotice("☕ Duyanan cloud server is waking up from sleep mode... Please hold on a moment!");
+        }, 3500);
+
         try {
+            const cleanEmail = credentials.email ? credentials.email.trim().toLowerCase() : '';
             const response = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: credentials.email ? credentials.email.trim().toLowerCase() : '',
+                    email: cleanEmail,
                     password: credentials.password,
                 }),
+                signal: controller.signal,
             });
-            const data = await response.json();
+
+            clearTimeout(warmUpTimer);
+            clearTimeout(timeoutId);
+
+            let data;
+            const textResponse = await response.text();
+            try {
+                data = JSON.parse(textResponse);
+            } catch {
+                data = { error: 'Server returned an unexpected response. It may still be booting up, please try again in a few seconds.' };
+            }
+
             if (!response.ok) {
-                setLoginError(data.error || 'Login failed. Please try again.');
+                setLoginError(data.error || 'Login failed. Please check your credentials and try again.');
             } else {
                 // Save user session via AuthContext
                 login({
@@ -165,10 +194,17 @@ const Login = () => {
                 }
             }
         } catch (err) {
+            clearTimeout(warmUpTimer);
+            clearTimeout(timeoutId);
             console.error("Login fetch error:", err);
-            setLoginError('Could not connect to the server. Please try again.');
+            if (err.name === 'AbortError') {
+                setLoginError('The server took longer than 25 seconds to respond. Please give it a few moments to finish waking up and try clicking Login Now again.');
+            } else {
+                setLoginError('Could not connect to the server. Please check your internet connection and try again.');
+            }
         } finally {
             setIsLoading(false);
+            setServerNotice('');
         }
     };
     const handleSocialLogin = (platform) => {
@@ -350,6 +386,24 @@ const Login = () => {
                             </span>
                         </div>
 
+                        {serverNotice && (
+                            <div
+                                className="mb-3 d-flex align-items-center gap-2"
+                                style={{
+                                    background: 'rgba(211,84,0,0.22)',
+                                    border: '1px solid rgba(255,165,0,0.45)',
+                                    borderRadius: '10px',
+                                    padding: '10px 14px',
+                                    color: '#ffe0b2',
+                                    fontSize: '0.85rem',
+                                    lineHeight: 1.4,
+                                }}
+                            >
+                                <span className="spinner-border spinner-border-sm text-warning" role="status" style={{ flexShrink: 0 }}></span>
+                                <span>{serverNotice}</span>
+                            </div>
+                        )}
+
                         {loginError && (
                             <div
                                 className="mb-3 d-flex align-items-center gap-2"
@@ -373,7 +427,7 @@ const Login = () => {
                             disabled={isLoading}
                         >
                             {isLoading
-                                ? <><span className="spinner-border spinner-border-sm me-2" role="status"></span>Logging in...</>
+                                ? <><span className="spinner-border spinner-border-sm me-2" role="status"></span>{serverNotice ? 'Waking up server...' : 'Logging in...'}</>
                                 : 'Login Now'
                             }
                         </button>
