@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import Swal from 'sweetalert2';
@@ -29,7 +29,7 @@ const parseGroupMealDescription = (desc) => {
         goodFor = goodFor.replace(/[()]/g, '').trim();
     }
 
-    const savingsMatch = desc.match(/Save\s+(?:up\s+to\s+)?(?:â‚±|PHP)?\s*(\d+)/i);
+    const savingsMatch = desc.match(/Save\s+(?:up\s+to\s+)?(?:₱|PHP)?\s*(\d+)/i);
     if (savingsMatch) {
         savings = parseFloat(savingsMatch[1]) || 0;
     }
@@ -38,7 +38,7 @@ const parseGroupMealDescription = (desc) => {
     if (goodForMatch) {
         cleanInclusions = cleanInclusions.replace(goodForMatch[0], '');
     }
-    const savePattern = /Save\s+(?:up\s+to\s+)?(?:â‚±|PHP)?\s*\d+\s*!?/i;
+    const savePattern = /Save\s+(?:up\s+to\s+)?(?:₱|PHP)?\s*\d+\s*!?/i;
     cleanInclusions = cleanInclusions.replace(savePattern, '');
     cleanInclusions = cleanInclusions.replace(/^[\s,.;:|[\]-]+|[\s,.;:|[\]-]+$/g, '').trim();
 
@@ -131,7 +131,7 @@ const AdminPanel = () => {
         'Authorization': `Bearer ${user.token}`
     });
 
-    // â”€â”€ Fetch Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Fetch Data ────────────────────────────────────────
     const fetchData = async (showLoading = true) => {
         if (showLoading) setIsLoading(true);
         try {
@@ -193,7 +193,7 @@ const AdminPanel = () => {
         }
     }, [products]);
 
-    // â”€â”€ Products CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Products CRUD ─────────────────────────────────────
     const resetProductForm = () => {
         let defaultCategory = 'Rice Meals';
         if (menuSubTab === 'event-packages') {
@@ -221,7 +221,7 @@ const AdminPanel = () => {
         }
     };
 
-    const handleProductSubmit = async (e) => {
+        const handleProductSubmit = async (e) => {
         e.preventDefault();
         setMessage('');
         setIsSavingProduct(true);
@@ -387,7 +387,7 @@ const AdminPanel = () => {
         }
     };
 
-    // â”€â”€ Orders & Reservations Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Orders & Reservations Status ──────────────────────
     const handleUpdateStatus = async (type, id, status) => {
         // If cancelling, show a modal requiring a reason
         if (status === 'CANCELLED') {
@@ -417,7 +417,7 @@ const AdminPanel = () => {
             });
 
             if (!isConfirmed) {
-                // Admin dismissed the modal â€” revert the dropdown by re-fetching
+                // Admin dismissed the modal — revert the dropdown by re-fetching
                 fetchData();
                 return;
             }
@@ -474,7 +474,7 @@ const AdminPanel = () => {
         }
     };
 
-    // â”€â”€ Derived Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Derived Stats ─────────────────────────────────────
     const totalSales = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
     const pendingOrders = orders.filter(o => o.status === 'PENDING').length;
     const preparingOrders = orders.filter(o => o.status === 'PREPARING').length;
@@ -484,7 +484,7 @@ const AdminPanel = () => {
     const completedRes = reservations.filter(r => r.status === 'COMPLETED').length;
     const cancelledRes = reservations.filter(r => r.status === 'CANCELLED').length;
 
-    // â”€â”€ Analytics & Forecasting Processors (Live Data) â”€â”€
+    // ── Analytics & Forecasting Processors (Live Data) ──
     const activeOrders = orders.filter(o => o.status !== 'CANCELLED');
     const liveTotalSales = activeOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
     const liveAOV = activeOrders.length > 0 ? liveTotalSales / activeOrders.length : 0;
@@ -561,7 +561,7 @@ const AdminPanel = () => {
         topCategory = 'Sizzling Meals'; // reasonable default
     }
 
-    // â”€â”€ Holt-Winters (Triple Exponential Smoothing) Forecasting â”€â”€
+    // ── Holt-Winters (Triple Exponential Smoothing) Forecasting ──
     const historySales = dailySalesData.map(d => d.sales);
     const hwPeriod = 7;
     const hwAlpha = 0.2; // Level smoothing factor
@@ -685,8 +685,8 @@ const AdminPanel = () => {
         return advice;
     };
 
-    // â”€â”€ Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    // â”€â”€ Events CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Components ────────────────────────────────────────
+    // ── Events CRUD ────────────────────────────────────────
     const resetEventForm = () => {
         setEventForm({ title: '', description: '', category: 'Milestone', eventDate: '', image: null });
         setEventImagePreview(null);
@@ -810,7 +810,7 @@ const AdminPanel = () => {
 
     return (
         <div className="d-flex flex-column min-vh-100 w-100" style={{ backgroundColor: '#fdfcfb' }}>
-            {/* â”€â”€ Desktop Header â”€â”€ */}
+            {/* ── Desktop Header ── */}
             <header 
                 className="d-flex justify-content-between align-items-center px-4 py-3 shadow-sm" 
                 style={{ 
@@ -827,7 +827,7 @@ const AdminPanel = () => {
                         <i className={`bi ${isSidebarOpen ? 'bi-x-lg' : 'bi-list'}`} style={{ fontSize: '2rem' }}></i>
                     </button>
                     <div className="d-flex align-items-center" onClick={() => window.location.href = '/'} style={{ cursor: 'pointer' }}>
-                        <span style={{ fontSize: '1.6rem', transform: 'rotate(-20deg)', display: 'inline-block', marginRight: '8px' }}>ðŸƒ</span>
+                        <span style={{ fontSize: '1.6rem', transform: 'rotate(-20deg)', display: 'inline-block', marginRight: '8px' }}>🍃</span>
                         <div className="d-flex flex-column" style={{ lineHeight: 1.1 }}>
                             <span style={{ fontSize: '1.6rem', fontWeight: 'bold' }}>Duyanan</span>
                             <span style={{ fontSize: '0.72rem', fontWeight: '600', opacity: 0.8, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Administrator</span>
@@ -864,7 +864,7 @@ const AdminPanel = () => {
             </header>
 
             <div className="d-flex flex-column flex-grow-1 position-relative">
-                {/* â”€â”€ Mobile Sidebar Drawer â”€â”€ */}
+                {/* ── Mobile Sidebar Drawer ── */}
                 {isSidebarOpen && (
                     <div 
                         className="position-fixed top-0 start-0 w-100 h-100 bg-dark d-lg-none" 
@@ -931,9 +931,9 @@ const AdminPanel = () => {
                     </div>
                 </div>
 
-                {/* â”€â”€ Main Content â”€â”€ */}
+                {/* ── Main Content ── */}
                 <div className="flex-grow-1 w-100" style={{ backgroundColor: '#fdfcfb' }}>
-                    {/* â”€â”€ Floating Alert â”€â”€ */}
+                    {/* ── Floating Alert ── */}
                     {message && (
                         <div className="position-fixed top-0 start-50 translate-middle-x mt-4" style={{ zIndex: 2000, width: 'max-content', maxWidth: '90%' }}>
                             <div className={`alert alert-success border-0 shadow-lg rounded-4 py-3 px-4 fw-bold d-inline-flex align-items-center mb-0 animate__animated ${isAlertVisible ? 'animate__fadeInDown' : 'animate__backOutUp'}`} role="alert" style={{ backgroundColor: '#e6ffed', border: '1px solid #d4edda' }}>
@@ -948,7 +948,7 @@ const AdminPanel = () => {
                             <div className="duyanan-loading-overlay">
                                 <div className="duyanan-loading-card">
                                     <div className="duyanan-loading-icon-wrap">
-                                        <span className="duyanan-loading-leaf">ðŸƒ</span>
+                                        <span className="duyanan-loading-leaf">🍃</span>
                                         <span className="duyanan-loading-ring"></span>
                                     </div>
                                     <p className="duyanan-loading-text">Preparing your table<span className="duyanan-loading-dots"><span>.</span><span>.</span><span>.</span></span></p>
@@ -957,7 +957,7 @@ const AdminPanel = () => {
                             </div>
                         ) : (
                         <>
-                            {/* â”€â”€ Dashboard Tab â”€â”€ */}
+                            {/* ── Dashboard Tab ── */}
                             {activeTab === 'dashboard' && (
                                 <div className="fade-in">
                                     <h3 className="fw-bold mb-4" style={{ color: 'var(--primary-brown)' }}>Dashboard Overview</h3>
@@ -965,7 +965,7 @@ const AdminPanel = () => {
                                         <div className="col-12 col-md-4">
                                             <StatBox 
                                                 title="Total Sales" 
-                                                value={`â‚±${liveTotalSales.toLocaleString(undefined, {minimumFractionDigits: 2})}`} 
+                                                value={`₱${liveTotalSales.toLocaleString(undefined, {minimumFractionDigits: 2})}`} 
                                                 subtitle={`${growthPercentString} this week`} 
                                             />
                                         </div>
@@ -1036,7 +1036,7 @@ const AdminPanel = () => {
                                 </div>
                             )}
 
-                            {/* â”€â”€ Active Orders Tab â”€â”€ */}
+                            {/* ── Active Orders Tab ── */}
                             {activeTab === 'orders' && (
                                 <div className="fade-in">
                                     <h3 className="fw-bold mb-4" style={{ color: 'var(--primary-brown)' }}>Active Orders</h3>
@@ -1070,7 +1070,7 @@ const AdminPanel = () => {
                                                                 {(o.orderType === 'DINE_IN' || o.reservation) ? (
                                                                     <div className="mt-1">
                                                                         <span className="badge bg-warning text-dark border" style={{ fontSize: '0.72rem' }}>
-                                                                            ðŸ½ï¸ Dine-In Pre-Order {o.reservation?.id ? `(Res #${o.reservation.id})` : ''}
+                                                                            🍽️ Dine-In Pre-Order {o.reservation?.id ? `(Res #${o.reservation.id})` : ''}
                                                                         </span>
                                                                     </div>
                                                                 ) : (
@@ -1089,7 +1089,7 @@ const AdminPanel = () => {
                                                             <td className="px-4 text-center">
                                                                 <div className="small">{new Date(o.orderDate || Date.now()).toLocaleString()}</div>
                                                             </td>
-                                                            <td className="px-4 fw-bold text-center">â‚±{o.totalAmount?.toFixed(2)}</td>
+                                                            <td className="px-4 fw-bold text-center">₱{o.totalAmount?.toFixed(2)}</td>
                                                             <td className="px-4 text-center">
                                                                 <span className={`badge rounded-pill ${o.status === 'PENDING' ? 'bg-warning text-dark' : o.status === 'COMPLETED' ? 'bg-success' : o.status === 'CANCELLED' ? 'bg-danger' : 'bg-info text-dark'}`}>
                                                                     {o.status}
@@ -1118,7 +1118,7 @@ const AdminPanel = () => {
                                 </div>
                             )}
 
-                            {/* â”€â”€ Reservations Tab â”€â”€ */}
+                            {/* ── Reservations Tab ── */}
                             {activeTab === 'reservations' && (
                                 <div className="fade-in">
                                     <h3 className="fw-bold mb-4" style={{ color: 'var(--primary-brown)' }}>Reservations Management</h3>
@@ -1159,7 +1159,7 @@ const AdminPanel = () => {
                                                                     return (
                                                                         <div className="mt-1">
                                                                             <span className="badge bg-warning text-dark border" style={{ fontSize: '0.72rem' }} title={linked.map(o => o.items?.map(i => `${i.quantity}x ${i.product?.name}`).join(', ')).join(' | ')}>
-                                                                                ðŸ½ï¸ Pre-Order: â‚±{totalPreOrder.toFixed(2)}
+                                                                                🍽️ Pre-Order: ₱{totalPreOrder.toFixed(2)}
                                                                             </span>
                                                                         </div>
                                                                     );
@@ -1175,7 +1175,7 @@ const AdminPanel = () => {
                                                                     fontWeight: 600,
                                                                     padding: '4px 10px'
                                                                 }}>
-                                                                    {r.seatingType ? (r.seatingType.toLowerCase() === 'indoor' ? 'ðŸ  Indoor' : 'ðŸŒ¿ Outdoor') : 'N/A'}
+                                                                    {r.seatingType ? (r.seatingType.toLowerCase() === 'indoor' ? '🏠 Indoor' : '🌿 Outdoor') : 'N/A'}
                                                                 </span>
                                                             </td>
                                                             <td className="px-4 text-center">
@@ -1186,7 +1186,7 @@ const AdminPanel = () => {
                                                                     fontWeight: 600,
                                                                     padding: '4px 10px'
                                                                 }}>
-                                                                    {r.eventType || 'Casual Dining ðŸ½ï¸'}
+                                                                    {r.eventType || 'Casual Dining 🍽️'}
                                                                 </span>
                                                             </td>
                                                             <td className="px-4 text-center">
@@ -1212,9 +1212,9 @@ const AdminPanel = () => {
                                                             <td className="px-4 text-center">
                                                                 <select className="form-select form-select-sm d-inline-block w-auto" value={r.status} onChange={(e) => handleUpdateStatus('reservations', r.id, e.target.value)}>
                                                                     <option value="PENDING">Pending</option>
-                                                                    <option value="CONFIRMED">Confirm</option>
+                                                                    <option value="CONFIRMED">Confirmed</option>
                                                                     <option value="COMPLETED">Completed</option>
-                                                                    <option value="CANCELLED">Cancel</option>
+                                                                    <option value="CANCELLED">Cancelled</option>
                                                                 </select>
                                                             </td>
                                                         </tr>
@@ -1227,7 +1227,7 @@ const AdminPanel = () => {
                                 </div>
                             )}
 
-                            {/* â”€â”€ Menu Management Tab â”€â”€ */}
+                            {/* ── Menu Management Tab ── */}
                             {activeTab === 'products' && (
                                 <>
                                     {/* Product Form Modal (placed outside fade-in to avoid transform context clipping) */}
@@ -1304,7 +1304,7 @@ const AdminPanel = () => {
                                                                                 <option key={c} value={c}>{c}</option>
                                                                             ))}
                                                                             <option value="ADD_NEW_CATEGORY" style={{ fontWeight: 'bold', color: 'var(--accent-orange)' }}>
-                                                                                âž• Add New Category...
+                                                                                ➕ Add New Category...
                                                                             </option>
                                                                         </>
                                                                     )}
@@ -1314,7 +1314,7 @@ const AdminPanel = () => {
                                                             {['Event Packages', 'Group Meals'].includes(productForm.category) ? (
                                                                 <>
                                                                     <div className="col-md-12">
-                                                                        <label className="form-label small fw-bold text-muted">Price (â‚±)</label>
+                                                                        <label className="form-label small fw-bold text-muted">Price (₱)</label>
                                                                         <input 
                                                                             type="number" 
                                                                             step="0.01" 
@@ -1350,7 +1350,7 @@ const AdminPanel = () => {
                                                                                 />
                                                                             </div>
                                                                             <div className="col-md-6">
-                                                                                <label className="form-label small fw-bold text-muted">Money Saved (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted">Money Saved (₱)</label>
                                                                                 <input 
                                                                                     type="number" 
                                                                                     step="0.01" 
@@ -1385,7 +1385,7 @@ const AdminPanel = () => {
                                                                                 <input type="text" className="form-control bg-white" value={productForm.flavors} onChange={e => setProductForm(p => ({ ...p, flavors: e.target.value }))} placeholder="e.g. Chocolate, Vanilla, Strawberry" />
                                                                             </div>
                                                                             <div className="col-md-12">
-                                                                                <label className="form-label small fw-bold text-muted text-nowrap">Price (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted text-nowrap">Price (₱)</label>
                                                                                 <input type="number" step="0.01" className="form-control bg-white" value={productForm.priceSolo} onChange={e => setProductForm(p => ({ ...p, priceSolo: e.target.value }))} placeholder="e.g. 150.00" />
                                                                             </div>
                                                                         </>
@@ -1394,23 +1394,23 @@ const AdminPanel = () => {
                                                                     {productForm.category === 'Drinks' && (
                                                                         <>
                                                                             <div className="col-md">
-                                                                                <label className="form-label small fw-bold text-muted text-nowrap">Glass (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted text-nowrap">Glass (₱)</label>
                                                                                 <input type="number" step="0.01" className="form-control bg-white" value={productForm.priceSolo} onChange={e => setProductForm(p => ({ ...p, priceSolo: e.target.value }))} />
                                                                             </div>
                                                                             <div className="col-md">
-                                                                                <label className="form-label small fw-bold text-muted text-nowrap">1 Liter (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted text-nowrap">1 Liter (₱)</label>
                                                                                 <input type="number" step="0.01" className="form-control bg-white" value={productForm.price1Liter} onChange={e => setProductForm(p => ({ ...p, price1Liter: e.target.value }))} />
                                                                             </div>
                                                                             <div className="col-md">
-                                                                                <label className="form-label small fw-bold text-muted text-nowrap">1.5 Liters (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted text-nowrap">1.5 Liters (₱)</label>
                                                                                 <input type="number" step="0.01" className="form-control bg-white" value={productForm.price1Point5Liter} onChange={e => setProductForm(p => ({ ...p, price1Point5Liter: e.target.value }))} />
                                                                             </div>
                                                                             <div className="col-md">
-                                                                                <label className="form-label small fw-bold text-muted text-nowrap">2 Liters (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted text-nowrap">2 Liters (₱)</label>
                                                                                 <input type="number" step="0.01" className="form-control bg-white" value={productForm.price2Liter} onChange={e => setProductForm(p => ({ ...p, price2Liter: e.target.value }))} />
                                                                             </div>
                                                                             <div className="col-md">
-                                                                                <label className="form-label small fw-bold text-muted text-nowrap">Price (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted text-nowrap">Price (₱)</label>
                                                                                 <input type="number" step="0.01" className="form-control bg-white" value={productForm.priceALaCarte} onChange={e => setProductForm(p => ({ ...p, priceALaCarte: e.target.value }))} />
                                                                             </div>
                                                                         </>
@@ -1419,11 +1419,11 @@ const AdminPanel = () => {
                                                                     {['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(productForm.category) && (
                                                                         <>
                                                                             <div className="col-md-6">
-                                                                                <label className="form-label small fw-bold text-muted">Price 1 (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted">Price 1 (₱)</label>
                                                                                 <input type="number" step="0.01" className="form-control bg-white" value={productForm.priceSolo} onChange={e => setProductForm(p => ({ ...p, priceSolo: e.target.value }))} />
                                                                             </div>
                                                                             <div className="col-md-6">
-                                                                                <label className="form-label small fw-bold text-muted">Price 2 (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted">Price 2 (₱)</label>
                                                                                 <input type="number" step="0.01" className="form-control bg-white" value={productForm.priceALaCarte} onChange={e => setProductForm(p => ({ ...p, priceALaCarte: e.target.value }))} />
                                                                             </div>
                                                                             <div className="col-md-12">
@@ -1436,7 +1436,7 @@ const AdminPanel = () => {
                                                                     {['Nachos'].includes(productForm.category) && (
                                                                         <>
                                                                             <div className="col-md-12">
-                                                                                <label className="form-label small fw-bold text-muted">Price (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted">Price (₱)</label>
                                                                                 <input type="number" step="0.01" className="form-control bg-white" value={productForm.priceSolo} onChange={e => setProductForm(p => ({ ...p, priceSolo: e.target.value }))} />
                                                                             </div>
                                                                             <div className="col-md-12">
@@ -1448,7 +1448,7 @@ const AdminPanel = () => {
 
                                                                     {['Sandwich', 'Student Meals'].includes(productForm.category) && (
                                                                         <div className="col-md-12">
-                                                                            <label className="form-label small fw-bold text-muted">Price (â‚±)</label>
+                                                                            <label className="form-label small fw-bold text-muted">Price (₱)</label>
                                                                             <input type="number" step="0.01" className="form-control bg-white" value={productForm.priceSolo} onChange={e => setProductForm(p => ({ ...p, priceSolo: e.target.value }))} required />
                                                                         </div>
                                                                     )}
@@ -1456,15 +1456,15 @@ const AdminPanel = () => {
                                                                     {!['Milk Shakes', 'Drinks', 'Sandwich', 'Student Meals', 'Duyanan Specials', 'Burger', 'French Fries', 'Nachos', 'Home-Made Siomai', 'Soup'].includes(productForm.category) && (
                                                                         <>
                                                                             <div className="col-md-4">
-                                                                                <label className="form-label small fw-bold text-muted">Solo Price (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted">Solo Price (₱)</label>
                                                                                 <input type="number" step="0.01" className="form-control bg-white" value={productForm.priceSolo} onChange={e => setProductForm(p => ({ ...p, priceSolo: e.target.value }))} />
                                                                             </div>
                                                                             <div className="col-md-4">
-                                                                                <label className="form-label small fw-bold text-muted">A La Carte 1 (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted">A La Carte 1 (₱)</label>
                                                                                 <input type="number" step="0.01" className="form-control bg-white" value={productForm.priceALaCarte} onChange={e => setProductForm(p => ({ ...p, priceALaCarte: e.target.value }))} />
                                                                             </div>
                                                                             <div className="col-md-4">
-                                                                                <label className="form-label small fw-bold text-muted">A La Carte 2 (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted">A La Carte 2 (₱)</label>
                                                                                 <input type="number" step="0.01" className="form-control bg-white" value={productForm.priceALaCarte2} onChange={e => setProductForm(p => ({ ...p, priceALaCarte2: e.target.value }))} />
                                                                             </div>
                                                                             <div className="col-md-12">
@@ -1489,7 +1489,7 @@ const AdminPanel = () => {
                                                                                 <input type="text" className="form-control bg-white" placeholder="e.g. Spag with Fries" value={combo.name} onChange={e => updateCombo(index, 'name', e.target.value)} />
                                                                             </div>
                                                                             <div className="col-md-3">
-                                                                                <label className="form-label small fw-bold text-muted">Price (â‚±)</label>
+                                                                                <label className="form-label small fw-bold text-muted">Price (₱)</label>
                                                                                 <input type="number" step="0.01" className="form-control bg-white" placeholder="0.00" value={combo.price} onChange={e => updateCombo(index, 'price', e.target.value)} />
                                                                             </div>
                                                                             <div className="col-md-2 d-flex align-items-end">
@@ -1629,33 +1629,33 @@ const AdminPanel = () => {
                                                                                         <div className="d-flex flex-column gap-1">
                                                                                             {p.flavors && <div><span className="fw-bold">Flavors:</span> {p.flavors}</div>}
                                                                                             <div className="d-flex flex-wrap justify-content-center gap-2">
-                                                                                                {p.priceSolo > 0 && <span className="badge bg-light text-dark border">Glass: â‚±{p.priceSolo.toFixed(2)}</span>}
-                                                                                                {p.priceALaCarte > 0 && <span className="badge bg-light text-dark border">Price: â‚±{p.priceALaCarte.toFixed(2)}</span>}
-                                                                                                {p.price1Liter > 0 && <span className="badge bg-light text-dark border">1L: â‚±{p.price1Liter.toFixed(2)}</span>}
-                                                                                                {p.price1Point5Liter > 0 && <span className="badge bg-light text-dark border">1.5L: â‚±{p.price1Point5Liter.toFixed(2)}</span>}
-                                                                                                {p.price2Liter > 0 && <span className="badge bg-light text-dark border">2L: â‚±{p.price2Liter.toFixed(2)}</span>}
+                                                                                                {p.priceSolo > 0 && <span className="badge bg-light text-dark border">Glass: ₱{p.priceSolo.toFixed(2)}</span>}
+                                                                                                {p.priceALaCarte > 0 && <span className="badge bg-light text-dark border">Price: ₱{p.priceALaCarte.toFixed(2)}</span>}
+                                                                                                {p.price1Liter > 0 && <span className="badge bg-light text-dark border">1L: ₱{p.price1Liter.toFixed(2)}</span>}
+                                                                                                {p.price1Point5Liter > 0 && <span className="badge bg-light text-dark border">1.5L: ₱{p.price1Point5Liter.toFixed(2)}</span>}
+                                                                                                {p.price2Liter > 0 && <span className="badge bg-light text-dark border">2L: ₱{p.price2Liter.toFixed(2)}</span>}
                                                                                             </div>
                                                                                         </div>
                                                                                     ) : p.category === 'Drinks' ? (
                                                                                         <div className="d-flex flex-wrap justify-content-center gap-2">
-                                                                                            {p.priceSolo > 0 && <span className="badge bg-light text-dark border">Glass: â‚±{p.priceSolo.toFixed(2)}</span>}
-                                                                                            {p.priceALaCarte > 0 && <span className="badge bg-light text-dark border">Price: â‚±{p.priceALaCarte.toFixed(2)}</span>}
-                                                                                            {p.price1Liter > 0 && <span className="badge bg-light text-dark border">1L: â‚±{p.price1Liter.toFixed(2)}</span>}
-                                                                                            {p.price1Point5Liter > 0 && <span className="badge bg-light text-dark border">1.5L: â‚±{p.price1Point5Liter.toFixed(2)}</span>}
-                                                                                            {p.price2Liter > 0 && <span className="badge bg-light text-dark border">2L: â‚±{p.price2Liter.toFixed(2)}</span>}
+                                                                                            {p.priceSolo > 0 && <span className="badge bg-light text-dark border">Glass: ₱{p.priceSolo.toFixed(2)}</span>}
+                                                                                            {p.priceALaCarte > 0 && <span className="badge bg-light text-dark border">Price: ₱{p.priceALaCarte.toFixed(2)}</span>}
+                                                                                            {p.price1Liter > 0 && <span className="badge bg-light text-dark border">1L: ₱{p.price1Liter.toFixed(2)}</span>}
+                                                                                            {p.price1Point5Liter > 0 && <span className="badge bg-light text-dark border">1.5L: ₱{p.price1Point5Liter.toFixed(2)}</span>}
+                                                                                            {p.price2Liter > 0 && <span className="badge bg-light text-dark border">2L: ₱{p.price2Liter.toFixed(2)}</span>}
                                                                                         </div>
                                                                                     ) : ['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(p.category) ? (
                                                                                         <span className="fw-bold text-dark">
                                                                                             {p.priceSolo > 0 && p.priceALaCarte > 0 
-                                                                                                ? `â‚±${p.priceSolo.toFixed(2)} - â‚±${p.priceALaCarte.toFixed(2)}` 
-                                                                                                : `â‚±${(p.priceSolo || p.priceALaCarte || 0).toFixed(2)}`}
+                                                                                                ? `₱${p.priceSolo.toFixed(2)} - ₱${p.priceALaCarte.toFixed(2)}` 
+                                                                                                : `₱${(p.priceSolo || p.priceALaCarte || 0).toFixed(2)}`}
                                                                                         </span>
                                                                                     ) : ['Nachos', 'Sandwich', 'Student Meals'].includes(p.category) ? (
-                                                                                        <span className="fw-bold text-dark">â‚±{(p.priceSolo || 0).toFixed(2)}</span>
+                                                                                        <span className="fw-bold text-dark">₱{(p.priceSolo || 0).toFixed(2)}</span>
                                                                                     ) : (
                                                                                         <div className="d-flex flex-wrap justify-content-center gap-2">
-                                                                                            <span className="badge bg-light text-dark border">Solo: â‚±{(p.priceSolo || 0).toFixed(2)}</span>
-                                                                                            {p.priceALaCarte > 0 && <span className="badge bg-light text-dark border">A La Carte: â‚±{p.priceALaCarte.toFixed(2)}</span>}
+                                                                                            <span className="badge bg-light text-dark border">Solo: ₱{(p.priceSolo || 0).toFixed(2)}</span>
+                                                                                            {p.priceALaCarte > 0 && <span className="badge bg-light text-dark border">A La Carte: ₱{p.priceALaCarte.toFixed(2)}</span>}
                                                                                         </div>
                                                                                     )}
                                                                                 </td>
@@ -1702,7 +1702,7 @@ const AdminPanel = () => {
                                                                          </div>
                                                                      </td>
                                                                      <td className="px-4 text-center text-muted small py-3" style={{ maxWidth: '300px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={p.description}>{p.description}</td>
-                                                                     <td className="px-4 text-center fw-bold text-dark py-3">â‚±{(p.priceSolo || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                                                     <td className="px-4 text-center fw-bold text-dark py-3">₱{(p.priceSolo || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                                                      <td className="px-4 text-end py-3 text-nowrap">
                                                                          <button className="btn btn-sm text-primary p-2 me-2" onClick={() => handleEditProduct(p)} title="Edit Package"><i className="bi bi-pencil-square fs-5"></i></button>
                                                                          <button className="btn btn-sm text-danger p-2" onClick={() => handleDeleteProduct(p.id)} title="Delete Package"><i className="bi bi-trash fs-5"></i></button>
@@ -1739,12 +1739,12 @@ const AdminPanel = () => {
                                                                      </td>
                                                                      <td className="px-4 text-center text-muted small py-3" style={{ maxWidth: '300px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={(() => {
                                                                          const parsed = parseGroupMealDescription(p.description);
-                                                                         return `Good for ${parsed.goodFor} | Save â‚±${parsed.savings} | Inclusions: ${parsed.inclusions}`;
+                                                                         return `Good for ${parsed.goodFor} | Save ₱${parsed.savings} | Inclusions: ${parsed.inclusions}`;
                                                                      })()}>{(() => {
                                                                          const parsed = parseGroupMealDescription(p.description);
-                                                                         return `Good for ${parsed.goodFor} | Save â‚±${parsed.savings} | Inclusions: ${parsed.inclusions}`;
+                                                                         return `Good for ${parsed.goodFor} | Save ₱${parsed.savings} | Inclusions: ${parsed.inclusions}`;
                                                                      })()}</td>
-                                                                     <td className="px-4 text-center fw-bold text-dark py-3">â‚±{(p.priceSolo || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                                                     <td className="px-4 text-center fw-bold text-dark py-3">₱{(p.priceSolo || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                                                      <td className="px-4 text-end py-3 text-nowrap">
                                                                          <button className="btn btn-sm text-primary p-2 me-2" onClick={() => handleEditProduct(p)} title="Edit Group Meal"><i className="bi bi-pencil-square fs-5"></i></button>
                                                                          <button className="btn btn-sm text-danger p-2" onClick={() => handleDeleteProduct(p.id)} title="Delete Group Meal"><i className="bi bi-trash fs-5"></i></button>
@@ -1761,7 +1761,7 @@ const AdminPanel = () => {
                                 </>
                             )}
 
-                            {/* â”€â”€ Sales Report Tab (Live) â”€â”€ */}
+                            {/* ── Sales Report Tab (Live) ── */}
                             {activeTab === 'sales' && (
                                 <div className="fade-in">
                                     <h3 className="fw-bold mb-4" style={{ color: 'var(--primary-brown)' }}>Sales Report</h3>
@@ -1769,7 +1769,7 @@ const AdminPanel = () => {
                                         <div className="col-md-6">
                                             <StatBox 
                                                 title="Average Daily Sales" 
-                                                value={`â‚±${liveAvgDailySales.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
+                                                value={`₱${liveAvgDailySales.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
                                             />
                                         </div>
                                         <div className="col-md-6">
@@ -1832,7 +1832,7 @@ const AdminPanel = () => {
                                                                         transition: 'all 0.2s ease-in-out'
                                                                     }}
                                                                 >
-                                                                    â‚±{item.sales.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                                                                    ₱{item.sales.toLocaleString(undefined, {maximumFractionDigits: 0})}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1845,7 +1845,7 @@ const AdminPanel = () => {
                                 </div>
                             )}
 
-                            {/* â”€â”€ Forecasting Tab (Live) â”€â”€ */}
+                            {/* ── Forecasting Tab (Live) ── */}
                             {activeTab === 'forecasting' && (() => {
                                 const allChartPoints = [...dailySalesData, ...projectedSalesData];
                                 const maxSales = Math.max(...allChartPoints.map(p => p.sales), 1);
@@ -1895,10 +1895,10 @@ const AdminPanel = () => {
                                     : "";
 
                                 const gridLines = [
-                                    { y: 50, label: `â‚±${(maxSales).toLocaleString(undefined, {maximumFractionDigits: 0})}` },
-                                    { y: 126, label: `â‚±${(minSales + (maxSales - minSales) * 0.67).toLocaleString(undefined, {maximumFractionDigits: 0})}` },
-                                    { y: 203, label: `â‚±${(minSales + (maxSales - minSales) * 0.33).toLocaleString(undefined, {maximumFractionDigits: 0})}` },
-                                    { y: 280, label: `â‚±${(minSales).toLocaleString(undefined, {maximumFractionDigits: 0})}` },
+                                    { y: 50, label: `₱${(maxSales).toLocaleString(undefined, {maximumFractionDigits: 0})}` },
+                                    { y: 126, label: `₱${(minSales + (maxSales - minSales) * 0.67).toLocaleString(undefined, {maximumFractionDigits: 0})}` },
+                                    { y: 203, label: `₱${(minSales + (maxSales - minSales) * 0.33).toLocaleString(undefined, {maximumFractionDigits: 0})}` },
+                                    { y: 280, label: `₱${(minSales).toLocaleString(undefined, {maximumFractionDigits: 0})}` },
                                 ];
 
                                 return (
@@ -1909,20 +1909,20 @@ const AdminPanel = () => {
                                             <div className="col-md-4">
                                                 <StatBox 
                                                     title="Projected Revenue (Next Month)" 
-                                                    value={`â‚±${projectedRevenueNextMonth.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
+                                                    value={`₱${projectedRevenueNextMonth.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
                                                     subtitle={`${growthPercentString} weekly trend`} 
                                                 />
                                             </div>
                                             <div className="col-md-4">
                                                 <StatBox 
                                                     title="Average Daily Sales" 
-                                                    value={`â‚±${liveAvgDailySales.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
+                                                    value={`₱${liveAvgDailySales.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
                                                 />
                                             </div>
                                             <div className="col-md-4">
                                                 <StatBox 
                                                     title="Average Order Value" 
-                                                    value={`â‚±${liveAOV.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
+                                                    value={`₱${liveAOV.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
                                                 />
                                             </div>
                                         </div>
@@ -2063,7 +2063,7 @@ const AdminPanel = () => {
                                                         <div className="d-flex justify-content-between px-1">
                                                             <span className="text-white-50">{hoveredPoint.isForecast ? 'Forecasted:' : 'Sales:'}</span>
                                                             <span className="fw-bold" style={{ color: hoveredPoint.isForecast ? '#dca7ff' : '#ffa07a' }}>
-                                                                â‚±{hoveredPoint.value.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                                                                ₱{hoveredPoint.value.toLocaleString(undefined, {maximumFractionDigits: 0})}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -2083,7 +2083,7 @@ const AdminPanel = () => {
                                 );
                             })()}
 
-                            {/* â”€â”€ Users Tab â”€â”€ */}
+                            {/* ── Users Tab ── */}
                             {activeTab === 'users' && (
                                 <div className="fade-in">
                                     <h3 className="fw-bold mb-4" style={{ color: 'var(--primary-brown)' }}>Registered Users</h3>
@@ -2119,7 +2119,7 @@ const AdminPanel = () => {
                                 </div>
                             )}
 
-                            {/* â”€â”€ Reviews Tab â”€â”€ */}
+                            {/* ── Reviews Tab ── */}
                             {activeTab === 'feedback' && (
                                 <div className="fade-in">
                                     <h3 className="fw-bold mb-4" style={{ color: 'var(--primary-brown)' }}>Customer Reviews & Feedback</h3>
@@ -2161,7 +2161,7 @@ const AdminPanel = () => {
                                                                     {fb.order?.items?.map((item, idx) => (
                                                                         <div key={idx} className="d-flex justify-content-between mb-1 small text-dark">
                                                                             <span>{item.quantity}x {item.product?.name}</span>
-                                                                            <span className="text-muted">â‚±{item.subtotal.toFixed(2)}</span>
+                                                                            <span className="text-muted">₱{item.subtotal.toFixed(2)}</span>
                                                                         </div>
                                                                     ))}
                                                                     {fb.order && <div className="text-end fw-bold mt-2 text-primary" style={{ fontSize: '0.8rem' }}>Order #{fb.order.id}</div>}
@@ -2176,7 +2176,7 @@ const AdminPanel = () => {
                                 </div>
                             )}
 
-                            {/* â”€â”€ Events Tab â”€â”€ */}
+                            {/* ── Events Tab ── */}
                             {activeTab === 'events' && (
                                 <div className="fade-in">
                                     <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
@@ -2260,7 +2260,7 @@ const AdminPanel = () => {
                                                                 accept="image/*"
                                                                 onChange={handleEventImageChange}
                                                             />
-                                                            <small className="text-muted">Recommended: 800Ã—500px or larger, landscape orientation.</small>
+                                                            <small className="text-muted">Recommended: 800×500px or larger, landscape orientation.</small>
                                                         </div>
                                                         <div className="col-md-6 d-flex align-items-center">
                                                             {eventImagePreview && (
