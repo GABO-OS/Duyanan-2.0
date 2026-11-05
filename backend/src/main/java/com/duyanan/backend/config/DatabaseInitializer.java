@@ -48,6 +48,8 @@ public class DatabaseInitializer implements CommandLineRunner {
             safeAddColumn("product", "price_solo", "DOUBLE DEFAULT 0");
             safeAddColumn("product", "price_ala_carte", "DOUBLE DEFAULT 0");
             safeAddColumn("product", "price_ala_carte2", "DOUBLE DEFAULT 0");
+            safeAddColumn("product", "priceala_carte", "DOUBLE DEFAULT 0");
+            safeAddColumn("product", "priceala_carte2", "DOUBLE DEFAULT 0");
             safeAddColumn("product", "price1_liter", "DOUBLE DEFAULT 0");
             safeAddColumn("product", "price1_point5_liter", "DOUBLE DEFAULT 0");
             safeAddColumn("product", "price2_liter", "DOUBLE DEFAULT 0");
@@ -75,11 +77,13 @@ public class DatabaseInitializer implements CommandLineRunner {
                 CREATE TABLE IF NOT EXISTS product_combos (
                     product_id BIGINT NOT NULL,
                     name VARCHAR(255),
-                    price DOUBLE,
-                    INDEX idx_product_combos_pid (product_id),
-                    CONSTRAINT fk_product_combos FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
+                    price DOUBLE DEFAULT 0,
+                    INDEX idx_product_combos_pid (product_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """);
+
+            safeAddColumn("product_combos", "name", "VARCHAR(255)");
+            safeAddColumn("product_combos", "price", "DOUBLE DEFAULT 0");
 
             log.info("Database schema consistency check completed successfully.");
         } catch (Exception e) {

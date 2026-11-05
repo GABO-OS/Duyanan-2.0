@@ -6,6 +6,7 @@ import com.duyanan.backend.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -58,8 +59,14 @@ public class AdminController {
 
     // ── Products ──────────────────────────────────────────
     @GetMapping("/products")
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> getAllProducts() {
+        try {
+            return ResponseEntity.ok(productRepository.findAll());
+        } catch (Exception e) {
+            log.error("Failed to fetch admin products: ", e);
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to fetch admin products: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/products")

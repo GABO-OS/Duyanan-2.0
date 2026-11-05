@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
 import java.util.List;
 import java.util.ArrayList;
 import lombok.Data;
@@ -35,7 +36,7 @@ public class Product {
     @Column(name = "out_of_stock")
     private Boolean outOfStock = false;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "product_combos", joinColumns = @JoinColumn(name = "product_id"))
     private List<ProductCombo> customCombos = new ArrayList<>();
 }
