@@ -2,6 +2,7 @@ package com.duyanan.backend.controller;
 
 import com.duyanan.backend.model.*;
 import com.duyanan.backend.repository.*;
+import com.duyanan.backend.service.ProductService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,17 +33,20 @@ public class AdminController {
     private final OrderRepository orderRepository;
     private final ReservationRepository reservationRepository;
     private final EventRepository eventRepository;
+    private final ProductService productService;
 
     public AdminController(UserRepository userRepository,
                            ProductRepository productRepository,
                            OrderRepository orderRepository,
                            ReservationRepository reservationRepository,
-                           EventRepository eventRepository) {
+                           EventRepository eventRepository,
+                           ProductService productService) {
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
         this.reservationRepository = reservationRepository;
         this.eventRepository = eventRepository;
+        this.productService = productService;
     }
 
     // ── Users ──────────────────────────────────────────────
@@ -59,10 +63,9 @@ public class AdminController {
 
     // ── Products ──────────────────────────────────────────
     @GetMapping("/products")
-    @Transactional(readOnly = true)
     public ResponseEntity<?> getAllProducts() {
         try {
-            return ResponseEntity.ok(productRepository.findAll());
+            return ResponseEntity.ok(productService.getAllProducts());
         } catch (Exception e) {
             log.error("Failed to fetch admin products: ", e);
             return ResponseEntity.status(500).body(Map.of("error", "Failed to fetch admin products: " + e.getMessage()));
@@ -80,7 +83,7 @@ public class AdminController {
             }
             // outOfStock is a primitive boolean — always has a value, no null check needed
             Product saved = productRepository.save(product);
-            return ResponseEntity.ok(saved);
+            return ResponseEntity.ok(productService.productToMap(saved));
         } catch (Exception e) {
             log.error("Failed to create product: ", e);
             return ResponseEntity.status(500).body(Map.of("error", "Failed to create product: " + e.getMessage()));
@@ -117,7 +120,7 @@ public class AdminController {
                 existing.setOutOfStock(product.isOutOfStock());
 
                 productRepository.save(existing);
-                return ResponseEntity.ok(existing);
+                return ResponseEntity.ok(productService.productToMap(existing));
             }).orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             log.error("Failed to update product id {}: ", id, e);
