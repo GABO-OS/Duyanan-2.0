@@ -78,9 +78,7 @@ public class AdminController {
             if (product.getCustomCombos() == null) {
                 product.setCustomCombos(new ArrayList<>());
             }
-            if (product.getOutOfStock() == null) {
-                product.setOutOfStock(false);
-            }
+            // outOfStock is a primitive boolean — always has a value, no null check needed
             Product saved = productRepository.save(product);
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
@@ -115,11 +113,8 @@ public class AdminController {
                     existing.getCustomCombos().addAll(product.getCustomCombos());
                 }
 
-                if (product.getOutOfStock() != null) {
-                    existing.setOutOfStock(product.getOutOfStock());
-                } else if (existing.getOutOfStock() == null) {
-                    existing.setOutOfStock(false);
-                }
+                // outOfStock is a primitive boolean — always set it from the incoming product
+                existing.setOutOfStock(product.isOutOfStock());
 
                 productRepository.save(existing);
                 return ResponseEntity.ok(existing);

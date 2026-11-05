@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [react()],
   build: {
     chunkSizeWarningLimit: 1000,
+    // Ensure output JS files are encoded as UTF-8 so special characters (₱, emojis) render correctly
+    charset: 'utf8',
     rollupOptions: {
       output: {
         manualChunks: {
