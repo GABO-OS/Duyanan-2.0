@@ -39,7 +39,8 @@ public class DatabaseInitializer implements CommandLineRunner {
                     description TEXT,
                     image_url VARCHAR(500),
                     category VARCHAR(100),
-                    flavors VARCHAR(255)
+                    flavors VARCHAR(255),
+                    out_of_stock BOOLEAN DEFAULT FALSE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """);
 
@@ -53,6 +54,16 @@ public class DatabaseInitializer implements CommandLineRunner {
             safeAddColumn("product", "flavors", "VARCHAR(255)");
             safeAddColumn("product", "image_url", "VARCHAR(500)");
             safeAddColumn("product", "category", "VARCHAR(100)");
+            safeAddColumn("product", "out_of_stock", "BOOLEAN DEFAULT FALSE");
+
+            // Ensure out_of_stock is defaulted so inserts without it won't fail
+            try {
+                jdbcTemplate.execute("ALTER TABLE product MODIFY COLUMN out_of_stock BOOLEAN NOT NULL DEFAULT FALSE");
+            } catch (Exception e1) {
+                try {
+                    jdbcTemplate.execute("ALTER TABLE product ALTER COLUMN out_of_stock SET DEFAULT FALSE");
+                } catch (Exception ignored) {}
+            }
 
             // If legacy column 'price' exists, ensure it is nullable so inserts without it won't fail
             try {

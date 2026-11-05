@@ -71,6 +71,9 @@ public class AdminController {
             if (product.getCustomCombos() == null) {
                 product.setCustomCombos(new ArrayList<>());
             }
+            if (product.getOutOfStock() == null) {
+                product.setOutOfStock(false);
+            }
             Product saved = productRepository.save(product);
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
@@ -103,6 +106,12 @@ public class AdminController {
                 if (product.getCustomCombos() != null) {
                     existing.getCustomCombos().clear();
                     existing.getCustomCombos().addAll(product.getCustomCombos());
+                }
+
+                if (product.getOutOfStock() != null) {
+                    existing.setOutOfStock(product.getOutOfStock());
+                } else if (existing.getOutOfStock() == null) {
+                    existing.setOutOfStock(false);
                 }
 
                 productRepository.save(existing);

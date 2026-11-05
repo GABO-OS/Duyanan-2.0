@@ -280,6 +280,7 @@ const AdminPanel = () => {
             price1Liter: productForm.price1Liter ? parseFloat(productForm.price1Liter) : 0,
             price1Point5Liter: productForm.price1Point5Liter ? parseFloat(productForm.price1Point5Liter) : 0,
             price2Liter: productForm.price2Liter ? parseFloat(productForm.price2Liter) : 0,
+            outOfStock: productForm.outOfStock !== undefined ? Boolean(productForm.outOfStock) : false,
             customCombos: (productForm.customCombos || []).map(c => ({ name: c.name, price: parseFloat(c.price) || 0 })).filter(c => c.name && c.price > 0)
         };
 
