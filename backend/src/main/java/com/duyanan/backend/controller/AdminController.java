@@ -93,35 +93,11 @@ public class AdminController {
     @PutMapping("/products/{id}")
     public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody Product product) {
         try {
-            return productRepository.findById(id).map(existing -> {
-                existing.setName(product.getName());
-                existing.setPriceSolo(product.getPriceSolo());
-                existing.setPriceALaCarte(product.getPriceALaCarte());
-                existing.setPriceALaCarte2(product.getPriceALaCarte2());
-                existing.setPrice1Liter(product.getPrice1Liter());
-                existing.setPrice1Point5Liter(product.getPrice1Point5Liter());
-                existing.setPrice2Liter(product.getPrice2Liter());
-                existing.setDescription(product.getDescription());
-                
-                if (product.getImageUrl() != null && !product.getImageUrl().equals(existing.getImageUrl())) {
-                    deleteOldImage(existing.getImageUrl());
-                }
-                existing.setImageUrl(product.getImageUrl());
-                
-                existing.setCategory(product.getCategory());
-                existing.setFlavors(product.getFlavors());
-                
-                if (product.getCustomCombos() != null) {
-                    existing.getCustomCombos().clear();
-                    existing.getCustomCombos().addAll(product.getCustomCombos());
-                }
-
-                // outOfStock is a primitive boolean — always set it from the incoming product
-                existing.setOutOfStock(product.isOutOfStock());
-
-                productRepository.save(existing);
-                return ResponseEntity.ok(productService.productToMap(existing));
-            }).orElse(ResponseEntity.notFound().build());
+            Map<String, Object> updated = productService.updateProduct(id, product);
+            if (updated != null) {
+                return ResponseEntity.ok(updated);
+            }
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             log.error("Failed to update product id {}: ", id, e);
             return ResponseEntity.status(500).body(Map.of("error", "Failed to update product: " + e.getMessage()));
@@ -131,11 +107,16 @@ public class AdminController {
     @DeleteMapping("/products/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
         try {
-            return productRepository.findById(id).map(product -> {
-                deleteOldImage(product.getImageUrl());
-                productRepository.deleteById(id);
+            Map<String, Object> existing = productService.getProductById(id);
+            if (existing != null && existing.get("imageUrl") != null) {
+                deleteOldImage((String) existing.get("imageUrl"));
+            }
+
+            boolean deleted = productService.deleteProduct(id);
+            if (deleted) {
                 return ResponseEntity.ok(Map.of("message", "Product deleted successfully."));
-            }).orElse(ResponseEntity.notFound().build());
+            }
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             log.error("Failed to delete product id {}: ", id, e);
             return ResponseEntity.status(500).body(Map.of("error", "Failed to delete product: " + e.getMessage()));
