@@ -38,13 +38,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             try {
                 Claims claims = jwtUtil.validateToken(token);
                 String email = claims.getSubject();
-                String role = claims.get("role", String.class);
+                String rawRole = claims.get("role", String.class);
+                String role = (rawRole != null ? rawRole.trim().toUpperCase() : "USER");
+                if (role.startsWith("ROLE_")) {
+                    role = role.substring(5);
+                }
 
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(
                                 email,
                                 null,
-                                List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                                List.of(
+                                        new SimpleGrantedAuthority("ROLE_" + role),
+                                        new SimpleGrantedAuthority(role)
+                                )
                         );
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (JwtException e) {

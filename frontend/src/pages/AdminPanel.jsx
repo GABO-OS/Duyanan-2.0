@@ -311,6 +311,9 @@ const AdminPanel = () => {
                     const errorData = await res.json();
                     if (errorData && errorData.error) errorMsg = errorData.error;
                 } catch (_) { /* ignore parse error */ }
+                if (res.status === 401 || res.status === 403) {
+                    errorMsg = 'Your session has expired or requires re-authentication. Please log out and log in again.';
+                }
                 Swal.fire({
                     icon: 'error',
                     title: `Action Failed (${res.status})`,
