@@ -86,6 +86,7 @@ const AdminPanel = () => {
         title: '', description: '', category: 'Milestone', eventDate: '', image: null
     });
     const [eventImagePreview, setEventImagePreview] = useState(null);
+    const [isSavingEvent, setIsSavingEvent] = useState(false);
     const eventCategories = ['Milestone', 'Community', 'Fiesta', 'Workshop', 'Celebration', 'Event'];
 
     // Product form state
@@ -711,6 +712,7 @@ const AdminPanel = () => {
     const handleEventSubmit = async (e) => {
         e.preventDefault();
         setMessage('');
+        setIsSavingEvent(true);
 
         const formData = new FormData();
         formData.append('title', eventForm.title);
@@ -743,10 +745,17 @@ const AdminPanel = () => {
                 resetEventForm();
                 fetchData();
             } else {
-                Swal.fire({ icon: 'error', title: 'Failed', text: 'Unable to save event.', confirmButtonColor: 'var(--primary-brown)' });
+                let errorMsg = 'Unable to save event.';
+                try {
+                    const errData = await res.json();
+                    if (errData && errData.error) errorMsg = errData.error;
+                } catch (_) {}
+                Swal.fire({ icon: 'error', title: 'Failed', text: errorMsg, confirmButtonColor: 'var(--primary-brown)' });
             }
-        } catch {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Error saving event.', confirmButtonColor: 'var(--primary-brown)' });
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Error saving event.', confirmButtonColor: 'var(--primary-brown)' });
+        } finally {
+            setIsSavingEvent(false);
         }
     };
 
@@ -2182,125 +2191,145 @@ const AdminPanel = () => {
 
                             {/* ── Events Tab ── */}
                             {activeTab === 'events' && (
-                                <div className="fade-in">
-                                    <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-                                        <h3 className="fw-bold mb-0" style={{ color: 'var(--primary-brown)' }}>Events & Milestones</h3>
-                                        <button
-                                            className="btn-brand d-flex align-items-center gap-2"
-                                            onClick={() => { resetEventForm(); setShowEventForm(true); }}
-                                        >
-                                            <i className="bi bi-plus-circle"></i> Add Event
-                                        </button>
-                                    </div>
-
-                                    <p className="text-muted mb-4">Manage events displayed on the <strong>About Us</strong> page. Customers will see these under "Our Events & Milestones".</p>
-
-                                    {/* Event Form */}
+                                <>
+                                    {/* Event Form Modal (placed outside fade-in to match Menu Item Modal) */}
                                     {showEventForm && (
-                                        <div className="card border-0 shadow-sm rounded-4 mb-4">
-                                            <div className="card-body p-4">
-                                                <div className="d-flex justify-content-between align-items-center mb-3">
-                                                    <h5 className="fw-bold mb-0" style={{ color: 'var(--primary-brown)' }}>
+                                        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
+                                            <style>{`
+                                                .admin-modal-no-scroll::-webkit-scrollbar {
+                                                    display: none;
+                                                }
+                                                .admin-modal-no-scroll {
+                                                    -ms-overflow-style: none;
+                                                    scrollbar-width: none;
+                                                }
+                                            `}</style>
+                                            <div className="card border-0 shadow-lg rounded-4 admin-modal-no-scroll" style={{ backgroundColor: '#fffaf5', width: '100%', maxWidth: '650px', maxHeight: '95vh', overflowY: 'auto' }}>
+                                                <div className="card-body p-3 p-md-4 position-relative">
+                                                    <button type="button" className="btn-close position-absolute top-0 end-0 m-3" onClick={resetEventForm}></button>
+                                                    <h5 className="fw-bold mb-3" style={{ color: 'var(--primary-brown)' }}>
                                                         {editingEvent ? 'Edit Event' : 'Create New Event'}
                                                     </h5>
-                                                    <button className="btn btn-sm btn-outline-secondary rounded-pill" onClick={resetEventForm}>
-                                                        <i className="bi bi-x-lg"></i> Cancel
-                                                    </button>
-                                                </div>
 
-                                                <form onSubmit={handleEventSubmit}>
-                                                    <div className="row g-3">
-                                                        <div className="col-md-6">
-                                                            <label className="form-label fw-bold">Event Title *</label>
-                                                            <input
-                                                                type="text"
-                                                                className="form-control rounded-3"
-                                                                placeholder="e.g. Grand Opening Day"
-                                                                value={eventForm.title}
-                                                                onChange={(e) => setEventForm(prev => ({ ...prev, title: e.target.value }))}
-                                                                required
-                                                            />
+                                                    <form onSubmit={handleEventSubmit}>
+                                                        <div className="row g-2">
+                                                            <div className="col-md-6">
+                                                                <label className="form-label small fw-bold text-muted">Event Title *</label>
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-control rounded-3 bg-white"
+                                                                    placeholder="e.g. Grand Opening Day"
+                                                                    value={eventForm.title}
+                                                                    onChange={(e) => setEventForm(prev => ({ ...prev, title: e.target.value }))}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                            <div className="col-md-3">
+                                                                <label className="form-label small fw-bold text-muted">Category *</label>
+                                                                <select
+                                                                    className="form-select rounded-3 bg-white"
+                                                                    value={eventForm.category}
+                                                                    onChange={(e) => setEventForm(prev => ({ ...prev, category: e.target.value }))}
+                                                                    required
+                                                                >
+                                                                    {eventCategories.map(cat => (
+                                                                        <option key={cat} value={cat}>{cat}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                            <div className="col-md-3">
+                                                                <label className="form-label small fw-bold text-muted">Date *</label>
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-control rounded-3 bg-white"
+                                                                    placeholder="e.g. June 2023"
+                                                                    value={eventForm.eventDate}
+                                                                    onChange={(e) => setEventForm(prev => ({ ...prev, eventDate: e.target.value }))}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                            <div className="col-12">
+                                                                <label className="form-label small fw-bold text-muted">Description *</label>
+                                                                <textarea
+                                                                    className="form-control rounded-3 bg-white"
+                                                                    rows="3"
+                                                                    placeholder="Describe the event..."
+                                                                    value={eventForm.description}
+                                                                    onChange={(e) => setEventForm(prev => ({ ...prev, description: e.target.value }))}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                            <div className="col-md-6">
+                                                                <label className="form-label small fw-bold text-muted">Event Image</label>
+                                                                <input
+                                                                    type="file"
+                                                                    className="form-control rounded-3 bg-white"
+                                                                    accept="image/*"
+                                                                    onChange={handleEventImageChange}
+                                                                />
+                                                                <small className="text-muted d-block mt-1" style={{ fontSize: '0.75rem' }}>Recommended: 800×500px or larger, landscape orientation.</small>
+                                                            </div>
+                                                            <div className="col-md-6 d-flex align-items-center">
+                                                                {eventImagePreview && (
+                                                                    <div className="position-relative mt-2">
+                                                                        <img
+                                                                            src={eventImagePreview}
+                                                                            alt="Preview"
+                                                                            style={{ height: '90px', borderRadius: '12px', objectFit: 'cover', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}
+                                                                        />
+                                                                        <button
+                                                                            type="button"
+                                                                            className="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
+                                                                            style={{ transform: 'translate(30%, -30%)', width: '26px', height: '26px', padding: 0, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                                            onClick={() => { setEventForm(prev => ({ ...prev, image: null })); setEventImagePreview(null); }}
+                                                                        >
+                                                                            <i className="bi bi-x"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                        <div className="col-md-3">
-                                                            <label className="form-label fw-bold">Category *</label>
-                                                            <select
-                                                                className="form-select rounded-3"
-                                                                value={eventForm.category}
-                                                                onChange={(e) => setEventForm(prev => ({ ...prev, category: e.target.value }))}
-                                                                required
+                                                        <div className="mt-3 pt-2 d-flex justify-content-end gap-2">
+                                                            <button type="button" className="btn btn-light px-3 py-1 fw-bold" onClick={resetEventForm}>
+                                                                Cancel
+                                                            </button>
+                                                            <button
+                                                                type="submit"
+                                                                className="btn text-white px-3 py-1 fw-bold"
+                                                                style={{ backgroundColor: 'var(--accent-orange)' }}
+                                                                disabled={isSavingEvent}
                                                             >
-                                                                {eventCategories.map(cat => (
-                                                                    <option key={cat} value={cat}>{cat}</option>
-                                                                ))}
-                                                            </select>
+                                                                {isSavingEvent ? (
+                                                                    <>
+                                                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                                        Saving...
+                                                                    </>
+                                                                ) : (
+                                                                    editingEvent ? 'Update Event' : 'Save Event'
+                                                                )}
+                                                            </button>
                                                         </div>
-                                                        <div className="col-md-3">
-                                                            <label className="form-label fw-bold">Date *</label>
-                                                            <input
-                                                                type="text"
-                                                                className="form-control rounded-3"
-                                                                placeholder="e.g. June 2023"
-                                                                value={eventForm.eventDate}
-                                                                onChange={(e) => setEventForm(prev => ({ ...prev, eventDate: e.target.value }))}
-                                                                required
-                                                            />
-                                                        </div>
-                                                        <div className="col-12">
-                                                            <label className="form-label fw-bold">Description *</label>
-                                                            <textarea
-                                                                className="form-control rounded-3"
-                                                                rows="3"
-                                                                placeholder="Describe the event..."
-                                                                value={eventForm.description}
-                                                                onChange={(e) => setEventForm(prev => ({ ...prev, description: e.target.value }))}
-                                                                required
-                                                            />
-                                                        </div>
-                                                        <div className="col-md-6">
-                                                            <label className="form-label fw-bold">Event Image</label>
-                                                            <input
-                                                                type="file"
-                                                                className="form-control rounded-3"
-                                                                accept="image/*"
-                                                                onChange={handleEventImageChange}
-                                                            />
-                                                            <small className="text-muted">Recommended: 800×500px or larger, landscape orientation.</small>
-                                                        </div>
-                                                        <div className="col-md-6 d-flex align-items-center">
-                                                            {eventImagePreview && (
-                                                                <div className="position-relative">
-                                                                    <img
-                                                                        src={eventImagePreview}
-                                                                        alt="Preview"
-                                                                        style={{ height: '120px', borderRadius: '12px', objectFit: 'cover', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}
-                                                                    />
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
-                                                                        style={{ transform: 'translate(30%, -30%)', width: '28px', height: '28px', padding: 0, fontSize: '0.75rem' }}
-                                                                        onClick={() => { setEventForm(prev => ({ ...prev, image: null })); setEventImagePreview(null); }}
-                                                                    >
-                                                                        <i className="bi bi-x"></i>
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="mt-4 d-flex gap-2">
-                                                        <button type="submit" className="btn-brand">
-                                                            <i className={`bi ${editingEvent ? 'bi-check-lg' : 'bi-plus-circle'} me-2`}></i>
-                                                            {editingEvent ? 'Update Event' : 'Create Event'}
-                                                        </button>
-                                                        <button type="button" className="btn btn-outline-secondary rounded-pill px-4" onClick={resetEventForm}>
-                                                            Cancel
-                                                        </button>
-                                                    </div>
-                                                </form>
+                                                    </form>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* Events List */}
+                                    <div className="fade-in">
+                                        <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                                            <h3 className="fw-bold mb-0" style={{ color: 'var(--primary-brown)' }}>Events & Milestones</h3>
+                                            <button
+                                                className="btn text-white shadow-sm px-4 py-2 fw-bold"
+                                                style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '10px' }}
+                                                onClick={() => { resetEventForm(); setShowEventForm(true); }}
+                                            >
+                                                <i className="bi bi-plus-lg me-2"></i> Add Event
+                                            </button>
+                                        </div>
+
+                                        <p className="text-muted mb-4">Manage events displayed on the <strong>About Us</strong> page. Customers will see these under "Our Events & Milestones".</p>
+
+                                        {/* Events List */}
                                     {events.length === 0 ? (
                                         <div className="text-center py-5 bg-white shadow-sm rounded-4 border border-light">
                                             <i className="bi bi-trophy text-muted mb-3 d-block" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
@@ -2372,6 +2401,7 @@ const AdminPanel = () => {
                                         </div>
                                     )}
                                 </div>
+                                </>
                             )}
                         </>
                     )}
