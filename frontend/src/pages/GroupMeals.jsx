@@ -62,27 +62,6 @@ const GroupMeals = () => {
     }, []);
 
     const handleAddMealToCart = (meal) => {
-        if (!isAuthenticated) {
-            Swal.fire({
-                icon: 'info',
-                title: 'Login Required',
-                html: 'You need an account to add items to cart.<br/><br/>Please <b>log in</b> or <b>register</b> to continue.',
-                showCancelButton: true,
-                confirmButtonText: '🔑 Login',
-                cancelButtonText: 'Register',
-                confirmButtonColor: 'var(--primary-brown)',
-                cancelButtonColor: 'var(--accent-orange)',
-                reverseButtons: false
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    navigate('/login');
-                } else if (result.dismiss === Swal.DismissReason.cancel) {
-                    navigate('/register');
-                }
-            });
-            return;
-        }
-
         // Add directly with 'Group Meal' as variant so it resolves to priceSolo
         addToCart(meal, 'Group Meal', meal.priceSolo);
 

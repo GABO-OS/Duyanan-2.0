@@ -58,13 +58,9 @@ function App() {
                                 <Route path="/group-meals" element={<GroupMeals />} />
                                 <Route path="/about" element={<About />} />
                                 <Route path="/book-reservation" element={<Reservations />} />
+                                <Route path="/cart" element={<CartPage />} />
 
                                 {/* Protected routes — require login */}
-                                <Route path="/cart" element={
-                                    <ProtectedRoute>
-                                        <CartPage />
-                                    </ProtectedRoute>
-                                } />
                                 <Route path="/profile" element={
                                     <ProtectedRoute>
                                         <Profile />

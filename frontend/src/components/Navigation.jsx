@@ -180,12 +180,12 @@ const Navigation = () => {
                         )}
                         <Link 
                             className="btn bg-white rounded-circle d-flex align-items-center justify-content-center shadow-sm position-relative p-0" 
-                            to={isAuthenticated ? "/cart" : "/menu"} 
+                            to="/cart" 
                             style={{ width: '40px', height: '40px' }}
                             aria-label="View cart"
                         >
                             <i className="bi bi-cart3" style={{ fontSize: '1.25rem', color: 'var(--accent-orange)' }}></i>
-                            {isAuthenticated && cartCount > 0 && (
+                            {cartCount > 0 && (
                                 <span 
                                     className="position-absolute badge rounded-pill bg-dark border border-white shadow-sm" 
                                     style={{ top: '-4px', right: '-4px', fontSize: '0.65rem', padding: '2px 5px' }}
@@ -234,10 +234,6 @@ const Navigation = () => {
                         <li className="nav-item"><Link className={`nav-link ${location.pathname === '/book-reservation' ? 'active' : ''}`} to="/book-reservation" onClick={() => setIsNavCollapsed(true)} style={{ color: '#fff', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}><i className="bi bi-calendar-event me-3 d-lg-none"></i>Book Reservation</Link></li>
                         <li className="nav-item"><Link className={`nav-link ${location.pathname === '/about' ? 'active' : ''}`} to="/about" onClick={() => setIsNavCollapsed(true)} style={{ color: '#fff', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}><i className="bi bi-info-circle me-3 d-lg-none"></i>About Us</Link></li>
 
-                        {isAuthenticated && isAdmin && (
-                            <li className="nav-item"><Link className="nav-link" to="/admin" onClick={() => setIsNavCollapsed(true)} style={{ color: '#ffd580', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}><i className="bi bi-shield-lock me-3"></i>Admin</Link></li>
-                        )}
-
                         {isAuthenticated ? (
                             <>
                                 <li className="nav-item dropdown ms-lg-2 d-none d-lg-flex align-items-center profile-dropdown-container" onMouseEnter={fetchCounts}>
@@ -285,6 +281,13 @@ const Navigation = () => {
                                             </Link>
                                         </li>
                                         <li><hr className="dropdown-divider" /></li>
+                                        {isAdmin && (
+                                            <li>
+                                                <Link className="dropdown-item fw-bold" to="/admin" style={{ color: 'var(--accent-orange)' }}>
+                                                    <i className="bi bi-shield-lock me-2"></i>Admin Dashboard
+                                                </Link>
+                                            </li>
+                                        )}
                                         <li>
                                             <button className="dropdown-item text-danger" onClick={handleLogout} style={{ border: 'none', background: 'transparent', textAlign: 'left' }}>
                                                 <i className="bi bi-box-arrow-right me-2"></i>Logout
@@ -302,6 +305,13 @@ const Navigation = () => {
                                         )}
                                      </Link>
                                 </li>
+                                {isAdmin && (
+                                    <li className="nav-item w-100 d-lg-none">
+                                        <Link className="nav-link fw-bold" to="/admin" onClick={() => setIsNavCollapsed(true)} style={{ color: 'var(--accent-orange)' }}>
+                                            <i className="bi bi-shield-lock me-3"></i>Admin Dashboard
+                                        </Link>
+                                    </li>
+                                )}
                                 <li className="nav-item w-100 d-lg-none">
                                      <Link className="nav-link d-flex justify-content-between align-items-center" to="/profile" state={{ tab: 'orders' }} onClick={() => setIsNavCollapsed(true)} style={{ color: 'var(--primary-brown)', fontWeight: '600' }}>
                                         <span><i className="bi bi-receipt me-3"></i>My Orders</span>
@@ -325,7 +335,7 @@ const Navigation = () => {
                                 <li className="nav-item ms-lg-2 d-none d-lg-flex align-items-center position-relative">
                                      <Link className="btn shadow-sm d-flex align-items-center rounded-pill" to="/cart" style={{ backgroundColor: '#fff', color: 'var(--accent-orange)', padding: '8px 24px', fontWeight: 'bold', textDecoration: 'none' }}>
                                         <i className="bi bi-cart3 me-2" style={{ fontSize: '1.2rem', color: 'var(--accent-orange)' }}></i>
-                                        Order Now
+                                        {cartCount > 0 ? `View Order (${cartCount})` : 'Order Now'}
                                      </Link>
                                      {cartCount > 0 && (<span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark shadow" style={{ transform: 'translate(-50%, -50%)', zIndex: 10 }}>{cartCount}</span>)}
                                 </li>
@@ -353,9 +363,9 @@ const Navigation = () => {
                                     </Link>
                                 </li>
                                 <li className="nav-item ms-lg-2 d-none d-lg-flex align-items-center">
-                                    <Link className="btn shadow-sm rounded-pill" to="/menu" style={{ backgroundColor: '#fff', color: 'var(--accent-orange)', padding: '8px 24px', fontWeight: 'bold', textDecoration: 'none' }}>
+                                    <Link className="btn shadow-sm rounded-pill" to={cartCount > 0 ? "/cart" : "/menu"} style={{ backgroundColor: '#fff', color: 'var(--accent-orange)', padding: '8px 24px', fontWeight: 'bold', textDecoration: 'none' }}>
                                         <i className="bi bi-cart3 me-2" style={{ fontSize: '1.2rem', color: 'var(--accent-orange)' }}></i>
-                                        Order Now
+                                        {cartCount > 0 ? `View Order (${cartCount})` : 'Order Now'}
                                     </Link>
                                 </li>
                             </>

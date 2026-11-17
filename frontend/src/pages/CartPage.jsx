@@ -331,12 +331,21 @@ const CartPage = () => {
         }
         if (!isAuthenticated) {
             Swal.fire({
-                icon: 'warning',
-                title: 'Sign In Required',
-                text: 'Please log in to proceed to checkout.',
-                confirmButtonColor: '#A04000'
+                icon: 'info',
+                title: 'Sign In Required to Order',
+                text: 'You can build and view your order as a guest, but an account is required to place and complete your order.',
+                showCancelButton: true,
+                confirmButtonText: 'Log In',
+                cancelButtonText: 'Register',
+                confirmButtonColor: 'var(--primary-brown)',
+                cancelButtonColor: 'var(--accent-orange)'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    navigate('/login');
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    navigate('/register');
+                }
             });
-            navigate('/login');
             return;
         }
         

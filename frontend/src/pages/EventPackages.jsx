@@ -93,16 +93,6 @@ const EventPackages = () => {
     const getDrinkOptions = () => menuItems.filter(item => ['Drinks', 'Milk Shakes'].includes(item.category));
 
     const handleOpenCustomization = (pkg) => {
-        if (!isAuthenticated) {
-            Swal.fire({
-                icon: 'info',
-                title: 'Login Required',
-                text: 'Please log in to customize and order an event package.',
-                confirmButtonColor: 'var(--primary-brown)'
-            });
-            return;
-        }
-
         const limits = getPackageLimits(pkg.name);
         
         // Initialize custom selections with empty values matching the limits

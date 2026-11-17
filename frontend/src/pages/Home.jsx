@@ -86,24 +86,7 @@ const Home = () => {
     const ctaRef         = useFadeInUp();
 
     const handleGuestAddToCart = (itemName) => {
-        if (!isAuthenticated) {
-            Swal.fire({
-                icon: 'info', title: 'Login Required',
-                html: `You need an account to order <b>${itemName}</b>.<br/><br/>Please <b>log in</b> or <b>register</b> to continue.`,
-                showCancelButton: true,
-                confirmButtonText: '🔑 Login', cancelButtonText: 'Register',
-                confirmButtonColor: '#7B3F00', cancelButtonColor: '#D35400',
-            }).then((result) => {
-                if (result.isConfirmed) navigate('/login');
-                else if (result.dismiss === Swal.DismissReason.cancel) navigate('/register');
-            });
-            return;
-        }
-        Swal.fire({
-            toast: true, position: 'bottom-end', icon: 'success',
-            title: 'Added to cart', text: `${itemName} has been added.`,
-            showConfirmButton: false, timer: 2500, timerProgressBar: true
-        });
+        navigate('/menu');
     };
 
     // Admins are no longer forcefully redirected to the dashboard.

@@ -241,15 +241,6 @@ const Menu = () => {
     const getDrinkOptions = () => menuItems.filter(item => ['Drinks', 'Milk Shakes'].includes(item.category));
 
     const handleOpenCustomization = (pkg) => {
-        if (!isAuthenticated) {
-            Swal.fire({
-                icon: 'info',
-                title: 'Login Required',
-                text: 'Please log in to customize and order an event package.',
-                confirmButtonColor: 'var(--primary-brown)'
-            });
-            return;
-        }
         const limits = getPackageLimits(pkg.name);
         setCustomSelections({
             mains: Array(limits.mains).fill(''),
@@ -287,26 +278,6 @@ const Menu = () => {
     };
 
     const handleAddGroupMealToCart = (meal) => {
-        if (!isAuthenticated) {
-            Swal.fire({
-                icon: 'info',
-                title: 'Login Required',
-                html: 'You need an account to add items to cart.<br/><br/>Please <b>log in</b> or <b>register</b> to continue.',
-                showCancelButton: true,
-                confirmButtonText: '🔑 Login',
-                cancelButtonText: 'Register',
-                confirmButtonColor: 'var(--primary-brown)',
-                cancelButtonColor: 'var(--accent-orange)',
-                reverseButtons: false
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    navigate('/login');
-                } else if (result.dismiss === Swal.DismissReason.cancel) {
-                    navigate('/register');
-                }
-            });
-            return;
-        }
         setSelectedGroupMeal(meal);
     };
 
@@ -362,27 +333,6 @@ const Menu = () => {
     };
 
     const handleAddToCart = (product) => {
-        if (!isAuthenticated) {
-            Swal.fire({
-                icon: 'info',
-                title: 'Login Required',
-                html: 'You need an account to add items to cart.<br/><br/>Please <b>log in</b> or <b>register</b> to continue.',
-                showCancelButton: true,
-                confirmButtonText: '🔑 Login',
-                cancelButtonText: 'Register',
-                confirmButtonColor: 'var(--primary-brown)',
-                cancelButtonColor: 'var(--accent-orange)',
-                reverseButtons: false
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    navigate('/login');
-                } else if (result.dismiss === Swal.DismissReason.cancel) {
-                    navigate('/register');
-                }
-            });
-            return;
-        }
-
         // Open Screen 4 Dish Customization Modal
         setCustomizingDish(product);
     };
@@ -489,7 +439,7 @@ const Menu = () => {
             </div>
 
             {/* ── Floating Cart Pill ── */}
-            {isAuthenticated && cartItemCount > 0 && (
+            {cartItemCount > 0 && (
                 <a
                     href="/cart"
                     className="floating-cart-pill"

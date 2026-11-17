@@ -77,8 +77,19 @@ const Reservations = () => {
         e.preventDefault();
 
         if (!isAuthenticated) {
-            Swal.fire({ icon: 'warning', title: 'Please Log In', text: 'You need to be logged in to make a reservation.', confirmButtonColor: 'var(--primary-brown)' });
-            navigate('/login');
+            Swal.fire({
+                icon: 'info',
+                title: 'Sign In Required to Reserve',
+                text: 'You can explore table options and seating as a guest, but an account is required to confirm your reservation.',
+                showCancelButton: true,
+                confirmButtonText: 'Log In',
+                cancelButtonText: 'Register',
+                confirmButtonColor: 'var(--primary-brown)',
+                cancelButtonColor: 'var(--accent-orange)'
+            }).then((result) => {
+                if (result.isConfirmed) navigate('/login');
+                else if (result.dismiss === Swal.DismissReason.cancel) navigate('/register');
+            });
             return;
         }
 
