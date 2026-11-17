@@ -4,10 +4,13 @@ import com.duyanan.backend.model.*;
 import com.duyanan.backend.repository.*;
 import com.duyanan.backend.service.ProductService;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -27,6 +31,7 @@ import java.util.UUID;
 public class AdminController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminController.class);
+    private static final int MIN_PASSWORD_LENGTH = 8;
 
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
@@ -34,19 +39,33 @@ public class AdminController {
     private final ReservationRepository reservationRepository;
     private final EventRepository eventRepository;
     private final ProductService productService;
+    private final PasswordEncoder passwordEncoder;
 
     public AdminController(UserRepository userRepository,
                            ProductRepository productRepository,
                            OrderRepository orderRepository,
                            ReservationRepository reservationRepository,
                            EventRepository eventRepository,
-                           ProductService productService) {
+                           ProductService productService,
+                           PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
         this.reservationRepository = reservationRepository;
         this.eventRepository = eventRepository;
         this.productService = productService;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    /**
+     * Narrows a value of unknown nullness (e.g. an entity coming out of an Optional)
+     * to @NonNull so it can be passed to null-annotated Spring Data methods.
+     */
+    private static <T> @NonNull T requireEntity(@Nullable T value) {
+        if (value == null) {
+            throw new IllegalStateException("Entity must not be null");
+        }
+        return value;
     }
 
     // ── Users ──────────────────────────────────────────────
@@ -61,6 +80,43 @@ public class AdminController {
         )).toList();
     }
 
+    // ── Account: Change Password (logged-in admin) ────────
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> body, Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Session expired. Please log out and log in again."));
+        }
+
+        String currentPassword = body.get("currentPassword");
+        String newPassword = body.get("newPassword");
+
+        if (currentPassword == null || currentPassword.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Current password is required."));
+        }
+        if (newPassword == null || newPassword.length() < MIN_PASSWORD_LENGTH) {
+            return ResponseEntity.badRequest().body(Map.of("error",
+                    "New password must be at least " + MIN_PASSWORD_LENGTH + " characters."));
+        }
+
+        Optional<User> userOpt = userRepository.findByEmail(authentication.getName());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "Account not found."));
+        }
+
+        User user = requireEntity(userOpt.get());
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Current password is incorrect."));
+        }
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "New password must be different from the current password."));
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("Password changed for admin account: {}", user.getEmail());
+        return ResponseEntity.ok(Map.of("message", "Password updated successfully."));
+    }
+
     // ── Products ──────────────────────────────────────────
     @GetMapping("/products")
     public ResponseEntity<?> getAllProducts() {
@@ -73,7 +129,7 @@ public class AdminController {
     }
 
     @PostMapping("/products")
-    public ResponseEntity<?> createProduct(@RequestBody Product product) {
+    public ResponseEntity<?> createProduct(@RequestBody @NonNull Product product) {
         try {
             if (product.getId() != null && product.getId() <= 0) {
                 product.setId(null);
@@ -91,7 +147,7 @@ public class AdminController {
     }
 
     @PutMapping("/products/{id}")
-    public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody Product product) {
+    public ResponseEntity<?> updateProduct(@PathVariable @NonNull Long id, @RequestBody @NonNull Product product) {
         try {
             Map<String, Object> updated = productService.updateProduct(id, product);
             if (updated != null) {
@@ -105,7 +161,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/products/{id}")
-    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
+    public ResponseEntity<?> deleteProduct(@PathVariable @NonNull Long id) {
         try {
             Map<String, Object> existing = productService.getProductById(id);
             if (existing != null && existing.get("imageUrl") != null) {
@@ -143,18 +199,21 @@ public class AdminController {
     }
 
     @PutMapping("/orders/{id}/status")
-    public ResponseEntity<?> updateOrderStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> updateOrderStatus(@PathVariable @NonNull Long id, @RequestBody Map<String, String> body) {
         String status = body.get("status");
-        String cancellationReason = body.get("cancellationReason");
+        String rawReason = body.get("cancellationReason");
+        String cancellationReason = rawReason != null ? rawReason.trim() : "";
+        boolean cancelling = "CANCELLED".equalsIgnoreCase(status);
 
-        if ("CANCELLED".equalsIgnoreCase(status) && (cancellationReason == null || cancellationReason.trim().isEmpty())) {
+        if (cancelling && cancellationReason.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Cancellation reason is required when cancelling an order."));
         }
 
-        return orderRepository.findById(id).map(order -> {
+        return orderRepository.findById(id).map(found -> {
+            Order order = requireEntity(found);
             order.setStatus(status);
-            if ("CANCELLED".equalsIgnoreCase(status)) {
-                order.setCancellationReason(cancellationReason.trim());
+            if (cancelling) {
+                order.setCancellationReason(cancellationReason);
             }
             orderRepository.save(order);
             return ResponseEntity.ok(Map.of(
@@ -172,18 +231,21 @@ public class AdminController {
     }
 
     @PutMapping("/reservations/{id}/status")
-    public ResponseEntity<?> updateReservationStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> updateReservationStatus(@PathVariable @NonNull Long id, @RequestBody Map<String, String> body) {
         String status = body.get("status");
-        String cancellationReason = body.get("cancellationReason");
+        String rawReason = body.get("cancellationReason");
+        String cancellationReason = rawReason != null ? rawReason.trim() : "";
+        boolean cancelling = "CANCELLED".equalsIgnoreCase(status);
 
-        if ("CANCELLED".equalsIgnoreCase(status) && (cancellationReason == null || cancellationReason.trim().isEmpty())) {
+        if (cancelling && cancellationReason.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Cancellation reason is required when cancelling a reservation."));
         }
 
-        return reservationRepository.findById(id).map(reservation -> {
+        return reservationRepository.findById(id).map(found -> {
+            Reservation reservation = requireEntity(found);
             reservation.setStatus(status);
-            if ("CANCELLED".equalsIgnoreCase(status)) {
-                reservation.setCancellationReason(cancellationReason.trim());
+            if (cancelling) {
+                reservation.setCancellationReason(cancellationReason);
             }
             reservationRepository.save(reservation);
             return ResponseEntity.ok(Map.of(
@@ -232,14 +294,15 @@ public class AdminController {
 
     @PutMapping("/events/{id}")
     public ResponseEntity<?> updateEvent(
-            @PathVariable Long id,
+            @PathVariable @NonNull Long id,
             @RequestParam("title") String title,
             @RequestParam("description") String description,
             @RequestParam("category") String category,
             @RequestParam("eventDate") String eventDate,
             @RequestParam(value = "image", required = false) MultipartFile image) {
 
-        return eventRepository.findById(id).map(existing -> {
+        return eventRepository.findById(id).map(found -> {
+            Event existing = requireEntity(found);
             existing.setTitle(title);
             existing.setDescription(description);
             existing.setCategory(category);
@@ -261,7 +324,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/events/{id}")
-    public ResponseEntity<?> deleteEvent(@PathVariable Long id) {
+    public ResponseEntity<?> deleteEvent(@PathVariable @NonNull Long id) {
         return eventRepository.findById(id).map(event -> {
             deleteOldImage(event.getImageUrl());
             eventRepository.deleteById(id);
