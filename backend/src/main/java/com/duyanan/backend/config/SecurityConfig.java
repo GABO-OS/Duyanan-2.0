@@ -48,9 +48,10 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         // Admin-only endpoints
                         .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "admin")
-                        // Authenticated endpoints (orders & reservations)
+                        // Authenticated endpoints (orders, reservations & notifications)
                         .requestMatchers("/api/orders/**").authenticated()
                         .requestMatchers("/api/reservations/**").authenticated()
+                        .requestMatchers("/api/notifications/**").authenticated()
                         .requestMatchers("/api/feedback/**").authenticated()
                         // Everything else requires authentication
                         .anyRequest().authenticated()

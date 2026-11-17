@@ -2,6 +2,7 @@ package com.duyanan.backend.controller;
 
 import com.duyanan.backend.model.*;
 import com.duyanan.backend.repository.*;
+import com.duyanan.backend.service.NotificationService;
 import com.duyanan.backend.util.*;
 
 import org.springframework.http.ResponseEntity;
@@ -20,17 +21,20 @@ public class OrderController {
     private final UserRepository userRepository;
     private final ReservationRepository reservationRepository;
     private final JwtUtil jwtUtil;
+    private final NotificationService notificationService;
 
     public OrderController(OrderRepository orderRepository,
                            ProductRepository productRepository,
                            UserRepository userRepository,
                            ReservationRepository reservationRepository,
-                           JwtUtil jwtUtil) {
+                           JwtUtil jwtUtil,
+                           NotificationService notificationService) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
         this.reservationRepository = reservationRepository;
         this.jwtUtil = jwtUtil;
+        this.notificationService = notificationService;
     }
 
     // ── Place a new order ────────────────────────────────────
@@ -172,6 +176,8 @@ public class OrderController {
                 }
             }
 
+            notificationService.notifyOrderStatus(saved);
+
             return ResponseEntity.ok(Map.of(
                     "message", "Order placed successfully!",
                     "orderId", saved.getId(),
@@ -250,12 +256,13 @@ public class OrderController {
 
             order.setStatus("CANCELLED");
             order.setCancellationReason(reason);
-            orderRepository.save(order);
+            Order saved = orderRepository.save(order);
+            notificationService.notifyOrderStatus(saved);
 
             return ResponseEntity.ok(Map.of(
                     "message", "Order cancelled successfully.",
-                    "orderId", order.getId(),
-                    "status", order.getStatus()
+                    "orderId", saved.getId(),
+                    "status", saved.getStatus()
             ));
 
         } catch (Exception e) {

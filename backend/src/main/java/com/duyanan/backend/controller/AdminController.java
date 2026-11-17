@@ -2,6 +2,7 @@ package com.duyanan.backend.controller;
 
 import com.duyanan.backend.model.*;
 import com.duyanan.backend.repository.*;
+import com.duyanan.backend.service.NotificationService;
 import com.duyanan.backend.service.ProductService;
 
 import org.jspecify.annotations.NonNull;
@@ -35,19 +36,22 @@ public class AdminController {
     private final ReservationRepository reservationRepository;
     private final EventRepository eventRepository;
     private final ProductService productService;
+    private final NotificationService notificationService;
 
     public AdminController(UserRepository userRepository,
                            ProductRepository productRepository,
                            OrderRepository orderRepository,
                            ReservationRepository reservationRepository,
                            EventRepository eventRepository,
-                           ProductService productService) {
+                           ProductService productService,
+                           NotificationService notificationService) {
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
         this.reservationRepository = reservationRepository;
         this.eventRepository = eventRepository;
         this.productService = productService;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -171,11 +175,12 @@ public class AdminController {
             if (cancelling) {
                 order.setCancellationReason(cancellationReason);
             }
-            orderRepository.save(order);
+            Order saved = orderRepository.save(order);
+            notificationService.notifyOrderStatus(saved);
             return ResponseEntity.ok(Map.of(
                     "message", "Order status updated.",
-                    "orderId", order.getId(),
-                    "status", order.getStatus()
+                    "orderId", saved.getId(),
+                    "status", saved.getStatus()
             ));
         }).orElse(ResponseEntity.notFound().build());
     }

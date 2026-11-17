@@ -78,6 +78,25 @@ public class DatabaseInitializer implements CommandLineRunner {
         // 3. Ensure table 'product_combos' exists with a PRIMARY KEY (required by cloud MySQL / DigitalOcean / Aiven)
         ensureProductCombosTable();
 
+        // 4. Ensure table 'notifications' exists with a PRIMARY KEY
+        try {
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    user_id BIGINT NOT NULL,
+                    order_id BIGINT NULL,
+                    title VARCHAR(255) NOT NULL,
+                    message TEXT NOT NULL,
+                    order_status VARCHAR(50),
+                    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_notifications_user_id (user_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            """);
+        } catch (Exception e) {
+            log.warn("Notice creating notifications table: {}", e.getMessage());
+        }
+
         log.info("Database schema consistency check completed successfully.");
     }
 

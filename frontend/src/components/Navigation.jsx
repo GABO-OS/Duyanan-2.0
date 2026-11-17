@@ -14,6 +14,7 @@ const Navigation = () => {
     const [isNavCollapsed, setIsNavCollapsed] = useState(true);
     const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
     const [pendingReservationsCount, setPendingReservationsCount] = useState(0);
+    const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
     const fetchCounts = async () => {
         if (!isAuthenticated || !user?.token) return;
@@ -49,6 +50,14 @@ const Navigation = () => {
                     setPendingReservationsCount(count);
                 }
             }
+
+            const notifRes = await fetch(`${API_URL}/api/notifications/unread-count`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            if (notifRes.ok) {
+                const notifData = await notifRes.json();
+                setUnreadNotifCount(notifData?.unreadCount || 0);
+            }
         } catch (err) {
             console.error("Error fetching notification counts for navbar dropdown:", err);
         }
@@ -60,10 +69,11 @@ const Navigation = () => {
         } else {
             setPendingOrdersCount(0);
             setPendingReservationsCount(0);
+            setUnreadNotifCount(0);
         }
     }, [isAuthenticated, user?.token, location]);
 
-    const totalNotifications = pendingOrdersCount + pendingReservationsCount;
+    const totalNotifications = unreadNotifCount + pendingOrdersCount + pendingReservationsCount;
 
     useEffect(() => { setIsNavCollapsed(true); }, [location]);
 
@@ -165,7 +175,7 @@ const Navigation = () => {
                             <Link 
                                 className="btn rounded-circle d-flex align-items-center justify-content-center position-relative p-0"
                                 to="/profile"
-                                state={{ tab: 'orders' }}
+                                state={{ tab: 'notifications' }}
                                 aria-label="Notifications"
                                 style={{ width: '38px', height: '38px', backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}
                             >
@@ -261,6 +271,16 @@ const Navigation = () => {
                                             </Link>
                                         </li>
                                         <li>
+                                            <Link className="dropdown-item d-flex justify-content-between align-items-center" to="/profile" state={{ tab: 'notifications' }}>
+                                                <span><i className="bi bi-bell me-2"></i>Notifications</span>
+                                                {unreadNotifCount > 0 && (
+                                                    <span className="badge rounded-pill bg-danger px-2 py-0.5" style={{ fontSize: '0.7rem' }}>
+                                                        {unreadNotifCount}
+                                                    </span>
+                                                )}
+                                            </Link>
+                                        </li>
+                                        <li>
                                             <Link className="dropdown-item d-flex justify-content-between align-items-center" to="/profile" state={{ tab: 'orders' }}>
                                                 <span><i className="bi bi-receipt me-2"></i>My Orders</span>
                                                 {pendingOrdersCount > 0 && (
@@ -312,6 +332,16 @@ const Navigation = () => {
                                         </Link>
                                     </li>
                                 )}
+                                <li className="nav-item w-100 d-lg-none">
+                                     <Link className="nav-link d-flex justify-content-between align-items-center" to="/profile" state={{ tab: 'notifications' }} onClick={() => setIsNavCollapsed(true)} style={{ color: 'var(--primary-brown)', fontWeight: '600' }}>
+                                        <span><i className="bi bi-bell me-3"></i>Notifications</span>
+                                        {unreadNotifCount > 0 && (
+                                            <span className="badge rounded-pill bg-danger px-2 py-0.5" style={{ fontSize: '0.7rem' }}>
+                                                {unreadNotifCount}
+                                            </span>
+                                        )}
+                                     </Link>
+                                </li>
                                 <li className="nav-item w-100 d-lg-none">
                                      <Link className="nav-link d-flex justify-content-between align-items-center" to="/profile" state={{ tab: 'orders' }} onClick={() => setIsNavCollapsed(true)} style={{ color: 'var(--primary-brown)', fontWeight: '600' }}>
                                         <span><i className="bi bi-receipt me-3"></i>My Orders</span>

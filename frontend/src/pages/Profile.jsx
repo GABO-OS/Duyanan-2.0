@@ -39,6 +39,9 @@ const Profile = () => {
     const [myOrders, setMyOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
     const [myReservations, setMyReservations] = useState([]);
+    const [notifications, setNotifications] = useState([]);
+    const [loadingNotifications, setLoadingNotifications] = useState(false);
+    const [notifFilter, setNotifFilter] = useState('all'); // 'all' | 'unread'
     const [lastViewedOrderId, setLastViewedOrderId] = useState(() => 
         parseInt(localStorage.getItem('lastViewedOrderId') || '0', 10)
     );
@@ -85,6 +88,7 @@ const Profile = () => {
             fetchUserProfile();
             fetchOrders();
             fetchReservations();
+            fetchNotifications();
         } else {
             setLoadingProfile(false);
         }
@@ -207,6 +211,51 @@ const Profile = () => {
             })
             .catch(err => console.error("Error fetching reservations:", err))
             .finally(() => setLoadingReservations(false));
+        }
+    };
+
+    const fetchNotifications = () => {
+        if (user?.token) {
+            setLoadingNotifications(true);
+            fetch(`${API_URL}/api/notifications`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            })
+            .then(res => res.ok ? res.json() : [])
+            .then(data => {
+                if (Array.isArray(data)) setNotifications(data);
+            })
+            .catch(err => console.error("Error fetching notifications:", err))
+            .finally(() => setLoadingNotifications(false));
+        }
+    };
+
+    const handleMarkNotificationRead = async (notif, goToOrders = false) => {
+        if (notif && !notif.isRead && user?.token) {
+            setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+            try {
+                await fetch(`${API_URL}/api/notifications/${notif.id}/read`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${user.token}` }
+                });
+            } catch (err) {
+                console.error("Error marking notification as read:", err);
+            }
+        }
+        if (goToOrders && notif?.orderId) {
+            setActiveTab('orders');
+        }
+    };
+
+    const handleMarkAllNotificationsRead = async () => {
+        if (!user?.token) return;
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        try {
+            await fetch(`${API_URL}/api/notifications/read-all`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+        } catch (err) {
+            console.error("Error marking all notifications as read:", err);
         }
     };
 
@@ -472,6 +521,7 @@ const Profile = () => {
     useEffect(() => {
         if (activeTab === 'orders') fetchOrders();
         if (activeTab === 'reservations') fetchReservations();
+        if (activeTab === 'notifications') fetchNotifications();
     }, [activeTab, user?.token]);
 
     const getStatusInfo = (status) => {
@@ -1001,6 +1051,139 @@ const Profile = () => {
             );
         }
 
+        if (activeTab === 'notifications') {
+            const filteredNotifs = notifFilter === 'unread'
+                ? notifications.filter(n => !n.isRead)
+                : notifications;
+
+            const getNotifBadge = (status) => {
+                switch (status?.toUpperCase()) {
+                    case 'PREPARING': return { bg: 'rgba(243, 156, 18, 0.14)', color: '#d68910', icon: 'bi-fire', label: 'Preparing' };
+                    case 'COMPLETED': return { bg: 'rgba(46, 204, 113, 0.14)', color: '#27ae60', icon: 'bi-check-circle-fill', label: 'Completed' };
+                    case 'CANCELLED': return { bg: 'rgba(231, 76, 60, 0.14)', color: '#e74c3c', icon: 'bi-x-circle-fill', label: 'Cancelled' };
+                    default: return { bg: 'rgba(211, 84, 0, 0.12)', color: 'var(--accent-orange)', icon: 'bi-clock-fill', label: 'Order Placed' };
+                }
+            };
+
+            return (
+                <>
+                    <div className="mb-4 d-flex flex-wrap justify-content-between align-items-end gap-2">
+                        <div>
+                            <h4 className="fw-bold mb-1" style={{ color: 'var(--text-dark)' }}>Order Notifications</h4>
+                            <p className="text-muted small mb-0">Stay updated on the status of your orders</p>
+                        </div>
+                        {unreadNotificationsCount > 0 && (
+                            <button
+                                onClick={handleMarkAllNotificationsRead}
+                                className="btn btn-sm fw-bold px-3 py-2"
+                                style={{ backgroundColor: 'rgba(211, 84, 0, 0.1)', color: 'var(--accent-orange)', borderRadius: '8px', border: '1px solid rgba(211, 84, 0, 0.2)' }}
+                            >
+                                <i className="bi bi-check2-all me-1"></i> Mark all as read
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="d-flex gap-2 mb-4">
+                        <button
+                            className={`btn btn-sm fw-bold px-3 py-1 rounded-pill ${notifFilter === 'all' ? 'text-white' : 'btn-outline-secondary'}`}
+                            style={notifFilter === 'all' ? { backgroundColor: 'var(--accent-orange)', borderColor: 'var(--accent-orange)' } : {}}
+                            onClick={() => setNotifFilter('all')}
+                        >
+                            All ({notifications.length})
+                        </button>
+                        <button
+                            className={`btn btn-sm fw-bold px-3 py-1 rounded-pill ${notifFilter === 'unread' ? 'text-white' : 'btn-outline-secondary'}`}
+                            style={notifFilter === 'unread' ? { backgroundColor: 'var(--accent-orange)', borderColor: 'var(--accent-orange)' } : {}}
+                            onClick={() => setNotifFilter('unread')}
+                        >
+                            Unread ({unreadNotificationsCount})
+                        </button>
+                    </div>
+
+                    {loadingNotifications ? (
+                        <div className="text-center py-5">
+                            <div className="spinner-border text-secondary" role="status"></div>
+                            <p className="text-muted mt-3 small">Loading notifications...</p>
+                        </div>
+                    ) : filteredNotifs.length === 0 ? (
+                        <div className="card border-0 bg-white text-center py-5" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                            <i className="bi bi-bell-slash text-muted mb-3 d-block" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
+                            <h5 className="fw-bold mb-2" style={{ color: 'var(--text-dark)' }}>
+                                {notifFilter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
+                            </h5>
+                            <p className="text-muted small mb-0">
+                                {notifFilter === 'unread'
+                                    ? 'You are all caught up on your order updates!'
+                                    : 'Order status updates will appear here whenever you place an order or its status changes.'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="d-flex flex-column gap-3">
+                            {filteredNotifs.map(notif => {
+                                const badge = getNotifBadge(notif.orderStatus);
+                                return (
+                                    <div
+                                        key={notif.id}
+                                        onClick={() => handleMarkNotificationRead(notif, Boolean(notif.orderId))}
+                                        className="card border-0"
+                                        style={{
+                                            borderRadius: '16px',
+                                            cursor: notif.orderId ? 'pointer' : 'default',
+                                            backgroundColor: notif.isRead ? '#ffffff' : '#fff8f2',
+                                            border: notif.isRead ? '1px solid rgba(0,0,0,0.05)' : '1.5px solid rgba(211, 84, 0, 0.35)',
+                                            boxShadow: notif.isRead ? '0 2px 12px rgba(0,0,0,0.04)' : '0 4px 18px rgba(211, 84, 0, 0.10)',
+                                            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                                        }}
+                                    >
+                                        <div className="card-body p-3 p-md-4 d-flex align-items-start gap-3">
+                                            <div
+                                                className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                                style={{ width: '44px', height: '44px', backgroundColor: badge.bg, color: badge.color }}
+                                            >
+                                                <i className={`bi ${badge.icon}`} style={{ fontSize: '1.2rem' }}></i>
+                                            </div>
+                                            <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                                                <div className="d-flex justify-content-between align-items-center gap-2 mb-1">
+                                                    <div className="d-flex align-items-center gap-2 flex-wrap">
+                                                        {!notif.isRead && (
+                                                            <span
+                                                                className="rounded-circle d-inline-block"
+                                                                style={{ width: '9px', height: '9px', backgroundColor: 'var(--accent-orange)', flexShrink: 0 }}
+                                                                title="Unread"
+                                                            />
+                                                        )}
+                                                        <h6 className="fw-bold mb-0" style={{ color: 'var(--text-dark)' }}>{notif.title}</h6>
+                                                    </div>
+                                                    <span
+                                                        className="badge rounded-pill flex-shrink-0"
+                                                        style={{ backgroundColor: badge.bg, color: badge.color, fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px' }}
+                                                    >
+                                                        {badge.label}
+                                                    </span>
+                                                </div>
+                                                <p className="text-muted small mb-2" style={{ lineHeight: 1.5 }}>{notif.message}</p>
+                                                <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                                    <small className="text-muted" style={{ fontSize: '0.76rem' }}>
+                                                        <i className="bi bi-clock me-1"></i>
+                                                        {notif.createdAt ? new Date(notif.createdAt).toLocaleString() : ''}
+                                                    </small>
+                                                    {notif.orderId && (
+                                                        <span className="small fw-bold" style={{ color: 'var(--accent-orange)', fontSize: '0.8rem' }}>
+                                                            View Order #{notif.orderId} <i className="bi bi-arrow-right ms-1"></i>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </>
+            );
+        }
+
         return (
             <div className="card border-0 bg-white text-center py-5" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                 <i className="bi bi-tools text-muted mb-3 d-block" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
@@ -1009,6 +1192,8 @@ const Profile = () => {
             </div>
         );
     };
+
+    const unreadNotificationsCount = notifications.filter(n => !n.isRead).length;
 
     const pendingOrdersCount = myOrders.filter(o => 
         parseInt(o.id || 0, 10) > lastViewedOrderId &&
@@ -1035,6 +1220,16 @@ const Profile = () => {
                         onClick={() => setActiveTab('profile')}
                     >
                         <i className="bi bi-person me-1"></i> Profile
+                    </button>
+                    <button 
+                        className={`btn btn-sm text-nowrap px-3 py-2 fw-bold rounded-pill position-relative ${activeTab === 'notifications' ? 'text-white shadow-sm' : 'btn-outline-secondary'}`} 
+                        style={activeTab === 'notifications' ? { backgroundColor: 'var(--accent-orange)', borderColor: 'var(--accent-orange)' } : { borderRadius: '20px' }}
+                        onClick={() => setActiveTab('notifications')}
+                    >
+                        <i className="bi bi-bell me-1"></i> Notifications
+                        {unreadNotificationsCount > 0 && (
+                            <span className="badge bg-danger ms-1.5 rounded-pill">{unreadNotificationsCount}</span>
+                        )}
                     </button>
                     <button 
                         className={`btn btn-sm text-nowrap px-3 py-2 fw-bold rounded-pill position-relative ${activeTab === 'orders' ? 'text-white shadow-sm' : 'btn-outline-secondary'}`} 
@@ -1158,6 +1353,14 @@ const Profile = () => {
                     <div className="d-flex flex-column mb-3">
                         <button className={`profile-sidebar-btn ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
                             <i className="bi bi-person"></i> My Profile
+                        </button>
+                        <button className={`profile-sidebar-btn ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}>
+                            <i className="bi bi-bell"></i> Notifications
+                            {unreadNotificationsCount > 0 && (
+                                <span className="badge rounded-pill ms-auto px-2 py-1">
+                                    {unreadNotificationsCount}
+                                </span>
+                            )}
                         </button>
                         <button className={`profile-sidebar-btn ${activeTab === 'payment' ? 'active' : ''}`} onClick={() => setActiveTab('payment')}>
                             <i className="bi bi-credit-card"></i> Payment Methods
