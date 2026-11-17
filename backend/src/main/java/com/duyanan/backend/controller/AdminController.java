@@ -9,8 +9,6 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,7 +21,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -31,7 +28,6 @@ import java.util.UUID;
 public class AdminController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminController.class);
-    private static final int MIN_PASSWORD_LENGTH = 8;
 
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
@@ -39,22 +35,19 @@ public class AdminController {
     private final ReservationRepository reservationRepository;
     private final EventRepository eventRepository;
     private final ProductService productService;
-    private final PasswordEncoder passwordEncoder;
 
     public AdminController(UserRepository userRepository,
                            ProductRepository productRepository,
                            OrderRepository orderRepository,
                            ReservationRepository reservationRepository,
                            EventRepository eventRepository,
-                           ProductService productService,
-                           PasswordEncoder passwordEncoder) {
+                           ProductService productService) {
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
         this.reservationRepository = reservationRepository;
         this.eventRepository = eventRepository;
         this.productService = productService;
-        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -78,43 +71,6 @@ public class AdminController {
                 "email", u.getEmail(),
                 "role", u.getRole()
         )).toList();
-    }
-
-    // ── Account: Change Password (logged-in admin) ────────
-    @PutMapping("/change-password")
-    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> body, Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "Session expired. Please log out and log in again."));
-        }
-
-        String currentPassword = body.get("currentPassword");
-        String newPassword = body.get("newPassword");
-
-        if (currentPassword == null || currentPassword.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Current password is required."));
-        }
-        if (newPassword == null || newPassword.length() < MIN_PASSWORD_LENGTH) {
-            return ResponseEntity.badRequest().body(Map.of("error",
-                    "New password must be at least " + MIN_PASSWORD_LENGTH + " characters."));
-        }
-
-        Optional<User> userOpt = userRepository.findByEmail(authentication.getName());
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(404).body(Map.of("error", "Account not found."));
-        }
-
-        User user = requireEntity(userOpt.get());
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Current password is incorrect."));
-        }
-        if (passwordEncoder.matches(newPassword, user.getPassword())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "New password must be different from the current password."));
-        }
-
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-        log.info("Password changed for admin account: {}", user.getEmail());
-        return ResponseEntity.ok(Map.of("message", "Password updated successfully."));
     }
 
     // ── Products ──────────────────────────────────────────

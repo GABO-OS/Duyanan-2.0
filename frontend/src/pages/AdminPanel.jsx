@@ -690,77 +690,6 @@ const AdminPanel = () => {
         return advice;
     };
 
-    // ── Account: Change Password ─────────────────────────
-    const handleChangePassword = async () => {
-        const inputStyle = 'width:100%;margin:6px 0 0;padding:10px 12px;border:1px solid #e0d6cc;border-radius:10px;font-size:0.95rem;';
-        const labelStyle = 'display:block;text-align:left;font-size:0.8rem;font-weight:700;color:#6c757d;margin-top:12px;';
-
-        const { value: formValues } = await Swal.fire({
-            title: 'Change Password',
-            html: `
-                <label style="${labelStyle}" for="cp-current">Current Password</label>
-                <input id="cp-current" type="password" autocomplete="current-password" style="${inputStyle}" />
-                <label style="${labelStyle}" for="cp-new">New Password (min. 8 characters)</label>
-                <input id="cp-new" type="password" autocomplete="new-password" style="${inputStyle}" />
-                <label style="${labelStyle}" for="cp-confirm">Confirm New Password</label>
-                <input id="cp-confirm" type="password" autocomplete="new-password" style="${inputStyle}" />
-            `,
-            focusConfirm: false,
-            showCancelButton: true,
-            confirmButtonText: 'Update Password',
-            confirmButtonColor: 'var(--accent-orange)',
-            showLoaderOnConfirm: true,
-            allowOutsideClick: () => !Swal.isLoading(),
-            preConfirm: async () => {
-                const currentPassword = document.getElementById('cp-current').value;
-                const newPassword = document.getElementById('cp-new').value;
-                const confirmPassword = document.getElementById('cp-confirm').value;
-
-                if (!currentPassword || !newPassword || !confirmPassword) {
-                    Swal.showValidationMessage('Please fill in all fields.');
-                    return false;
-                }
-                if (newPassword.length < 8) {
-                    Swal.showValidationMessage('New password must be at least 8 characters.');
-                    return false;
-                }
-                if (newPassword !== confirmPassword) {
-                    Swal.showValidationMessage('New passwords do not match.');
-                    return false;
-                }
-
-                try {
-                    const res = await fetch(`${API_URL}/api/admin/change-password`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${user.token}`
-                        },
-                        body: JSON.stringify({ currentPassword, newPassword })
-                    });
-                    let data = {};
-                    try { data = await res.json(); } catch (_) { /* empty body */ }
-                    if (!res.ok) {
-                        Swal.showValidationMessage(data.error || `Unable to change password (${res.status}).`);
-                        return false;
-                    }
-                    return data;
-                } catch (err) {
-                    Swal.showValidationMessage(err.message || 'Network error. Please try again.');
-                    return false;
-                }
-            }
-        });
-
-        if (formValues) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Password Updated',
-                text: 'Use your new password the next time you log in.',
-                confirmButtonColor: 'var(--primary-brown)'
-            });
-        }
-    };
     // ── Components ────────────────────────────────────────
     // ── Events CRUD ────────────────────────────────────────
     const resetEventForm = () => {
@@ -934,17 +863,9 @@ const AdminPanel = () => {
                     ))}
                 </nav>
 
-                {/* Right: Change Password + Logout */}
-                <div className="d-flex align-items-center justify-content-end gap-2" style={{ minWidth: '160px' }}>
+                {/* Right: Logout */}
+                <div className="d-flex align-items-center justify-content-end" style={{ minWidth: '160px' }}>
                     <button
-                        className="btn btn-outline-light d-flex align-items-center justify-content-center px-3 py-2"
-                        style={{ fontSize: '0.85rem', borderRadius: '10px' }}
-                        onClick={handleChangePassword}
-                        title="Change Password"
-                        aria-label="Change Password"
-                    >
-                        <i className="bi bi-key" style={{ fontSize: '1rem' }}></i>
-                    </button>                    <button
                         className="btn btn-outline-light d-flex align-items-center gap-2 px-3 py-2 fw-bold"
                         style={{ fontSize: '0.85rem', borderRadius: '10px', letterSpacing: '0.03em' }}
                         onClick={() => { logout(); window.location.href = '/'; }}
