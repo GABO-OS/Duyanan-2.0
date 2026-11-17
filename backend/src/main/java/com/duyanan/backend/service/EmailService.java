@@ -12,6 +12,11 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -21,17 +26,29 @@ import java.util.concurrent.CompletableFuture;
 public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
+    private static final String BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
     private final JavaMailSender mailSender;
+    private final HttpClient httpClient;
 
-    @Value("${spring.mail.username:}")
+    @Value("${spring.mail.username:duyanankainan@gmail.com}")
     private String fromEmail;
 
-    @Value("${app.frontend-url:http://localhost:5173}")
+    @Value("${app.frontend-url:https://duyanan-frontend.onrender.com}")
     private String frontendUrl;
+
+    @Value("${app.mail.google-script-url:}")
+    private String googleScriptUrl;
+
+    @Value("${app.mail.brevo-api-key:}")
+    private String brevoApiKey;
 
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
+        this.httpClient = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .connectTimeout(Duration.ofSeconds(15))
+                .build();
     }
 
     private record ItemSummary(String name, String variant, int quantity, double subtotal) {}
@@ -52,15 +69,7 @@ public class EmailService {
             return;
         }
         String resetLink = frontendUrl + "/reset-password?token=" + token;
-
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-        if (fromEmail != null && !fromEmail.isBlank()) {
-            helper.setFrom(fromEmail);
-        }
-        helper.setTo(toEmail);
-        helper.setSubject("Duyanan Restaurant — Reset Your Password");
+        String subject = "Duyanan Restaurant — Reset Your Password";
 
         String htmlContent = """
                 <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a2e; border-radius: 16px; overflow: hidden;">
@@ -90,8 +99,7 @@ public class EmailService {
                 </div>
                 """.formatted(resetLink, resetLink, resetLink);
 
-        helper.setText(Objects.requireNonNullElse(htmlContent, ""), true);
-        mailSender.send(message);
+        dispatchHtmlEmail(toEmail, subject, htmlContent);
     }
 
     /**
@@ -108,6 +116,31 @@ public class EmailService {
             return;
         }
 
+        OrderEmailPayload payload = buildOrderPayload(order, toEmail, user.getFirstName());
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                sendOrderStatusEmail(payload);
+            } catch (Exception e) {
+                log.error("Failed to send order status email for order #{} to {}: {}",
+                        payload.orderId(), payload.toEmail(), e.getMessage());
+            }
+        });
+    }
+
+    public void sendOrderStatusEmail(Order order) throws MessagingException {
+        if (order == null || order.getUser() == null || order.getUser().getEmail() == null) {
+            return;
+        }
+        OrderEmailPayload payload = buildOrderPayload(
+                order,
+                order.getUser().getEmail(),
+                order.getUser().getFirstName()
+        );
+        sendOrderStatusEmail(payload);
+    }
+
+    private OrderEmailPayload buildOrderPayload(Order order, String toEmail, String firstName) {
         List<ItemSummary> itemSummaries = new ArrayList<>();
         try {
             if (order.getItems() != null) {
@@ -125,9 +158,9 @@ public class EmailService {
             log.warn("Could not extract order items for email on order {}: {}", order.getId(), e.getMessage());
         }
 
-        OrderEmailPayload payload = new OrderEmailPayload(
+        return new OrderEmailPayload(
                 toEmail,
-                user.getFirstName() != null ? user.getFirstName() : "Valued Customer",
+                firstName != null ? firstName : "Valued Customer",
                 order.getId(),
                 order.getStatus() != null ? order.getStatus().toUpperCase() : "PENDING",
                 order.getTotalAmount() != null ? order.getTotalAmount() : 0.0,
@@ -135,52 +168,9 @@ public class EmailService {
                 order.getCancellationReason(),
                 itemSummaries
         );
-
-        CompletableFuture.runAsync(() -> {
-            try {
-                sendOrderStatusEmail(payload);
-            } catch (Exception e) {
-                log.error("Failed to send order status email for order #{} to {}: {}",
-                        payload.orderId(), payload.toEmail(), e.getMessage());
-            }
-        });
-    }
-
-    public void sendOrderStatusEmail(Order order) throws MessagingException {
-        if (order == null || order.getUser() == null || order.getUser().getEmail() == null) {
-            return;
-        }
-        List<ItemSummary> itemSummaries = new ArrayList<>();
-        if (order.getItems() != null) {
-            for (OrderItem item : order.getItems()) {
-                String prodName = (item.getProduct() != null && item.getProduct().getName() != null)
-                        ? item.getProduct().getName()
-                        : "Menu Item";
-                String variant = item.getVariant() != null ? item.getVariant() : "";
-                int qty = item.getQuantity() != null ? item.getQuantity() : 1;
-                double sub = item.getSubtotal() != null ? item.getSubtotal() : 0.0;
-                itemSummaries.add(new ItemSummary(prodName, variant, qty, sub));
-            }
-        }
-        OrderEmailPayload payload = new OrderEmailPayload(
-                order.getUser().getEmail(),
-                order.getUser().getFirstName() != null ? order.getUser().getFirstName() : "Valued Customer",
-                order.getId(),
-                order.getStatus() != null ? order.getStatus().toUpperCase() : "PENDING",
-                order.getTotalAmount() != null ? order.getTotalAmount() : 0.0,
-                order.getOrderType() != null ? order.getOrderType() : "DELIVERY",
-                order.getCancellationReason(),
-                itemSummaries
-        );
-        sendOrderStatusEmail(payload);
     }
 
     private void sendOrderStatusEmail(OrderEmailPayload payload) throws MessagingException {
-        if (fromEmail == null || fromEmail.isBlank()) {
-            log.info("Skipping order status email for order #{}: spring.mail.username is not configured.", payload.orderId());
-            return;
-        }
-
         String statusLabel;
         String statusBadgeColor;
         String statusHeadline;
@@ -297,15 +287,127 @@ public class EmailService {
                 profileLink
         );
 
+        dispatchHtmlEmail(payload.toEmail(), subject, htmlContent);
+        log.info("Order status email ({}) dispatched for order #{} to {}", payload.status(), payload.orderId(), payload.toEmail());
+    }
+
+    /**
+     * Dispatches an HTML email using HTTPS relays first (which bypass Render Free Tier
+     * outbound SMTP port blocks), falling back to standard SMTP via JavaMailSender.
+     */
+    private void dispatchHtmlEmail(String toEmail, String subject, String htmlContent) throws MessagingException {
+        String safeTo = Objects.requireNonNull(toEmail);
+        String safeSubject = Objects.requireNonNullElse(subject, "Duyanan Restaurant Notification");
+        String safeHtml = Objects.requireNonNullElse(htmlContent, "");
+
+        // Priority 1: Google Apps Script HTTPS Relay
+        if (googleScriptUrl != null && !googleScriptUrl.isBlank()) {
+            if (sendViaGoogleAppsScript(safeTo, safeSubject, safeHtml)) {
+                return;
+            }
+        }
+
+        // Priority 2: Brevo HTTPS Transactional Email API
+        if (brevoApiKey != null && !brevoApiKey.isBlank()) {
+            if (sendViaBrevo(safeTo, safeSubject, safeHtml)) {
+                return;
+            }
+        }
+
+        // Priority 3: Standard SMTP (JavaMailSender)
+        sendViaSmtp(safeTo, safeSubject, safeHtml);
+    }
+
+    private boolean sendViaGoogleAppsScript(String toEmail, String subject, String htmlContent) {
+        try {
+            String jsonBody = String.format(
+                    "{\"to\":\"%s\",\"subject\":\"%s\",\"html\":\"%s\",\"senderName\":\"Duyanan Restaurant\"}",
+                    escapeJson(toEmail),
+                    escapeJson(subject),
+                    escapeJson(htmlContent)
+            );
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(googleScriptUrl.trim()))
+                    .timeout(Duration.ofSeconds(20))
+                    .header("Content-Type", "application/json; charset=UTF-8")
+                    .POST(HttpRequest.BodyPublishers.ofString(Objects.requireNonNull(jsonBody)))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            int status = response.statusCode();
+            String finalHost = response.uri() != null && response.uri().getHost() != null
+                    ? response.uri().getHost()
+                    : "";
+
+            if (finalHost.contains("accounts.google.com")) {
+                log.warn("Google Apps Script relay redirected to Google Sign-In; verify deployment access is set to 'Anyone'. Falling back.");
+                return false;
+            }
+
+            if (status >= 200 && status < 400) {
+                log.info("Email sent via Google Apps Script HTTPS relay to {} (HTTP {})", toEmail, status);
+                return true;
+            }
+            log.warn("Google Apps Script relay returned HTTP {}: {}", status, response.body());
+        } catch (Exception e) {
+            log.warn("Google Apps Script relay failed for {}: {}", toEmail, e.getMessage());
+        }
+        return false;
+    }
+
+    private boolean sendViaBrevo(String toEmail, String subject, String htmlContent) {
+        try {
+            String senderEmail = (fromEmail != null && !fromEmail.isBlank())
+                    ? fromEmail.trim()
+                    : "duyanankainan@gmail.com";
+
+            String jsonBody = String.format(
+                    "{\"sender\":{\"name\":\"Duyanan Restaurant\",\"email\":\"%s\"}," +
+                    "\"to\":[{\"email\":\"%s\"}]," +
+                    "\"subject\":\"%s\"," +
+                    "\"htmlContent\":\"%s\"}",
+                    escapeJson(senderEmail),
+                    escapeJson(toEmail),
+                    escapeJson(subject),
+                    escapeJson(htmlContent)
+            );
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(BREVO_ENDPOINT))
+                    .timeout(Duration.ofSeconds(20))
+                    .header("accept", "application/json")
+                    .header("api-key", brevoApiKey.trim())
+                    .header("content-type", "application/json; charset=UTF-8")
+                    .POST(HttpRequest.BodyPublishers.ofString(Objects.requireNonNull(jsonBody)))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            int status = response.statusCode();
+            if (status >= 200 && status < 300) {
+                log.info("Email sent via Brevo HTTPS API to {} (HTTP {})", toEmail, status);
+                return true;
+            }
+            log.warn("Brevo API returned HTTP {}: {}", status, response.body());
+        } catch (Exception e) {
+            log.warn("Brevo HTTPS API failed for {}: {}", toEmail, e.getMessage());
+        }
+        return false;
+    }
+
+    private void sendViaSmtp(String toEmail, String subject, String htmlContent) throws MessagingException {
+        if (fromEmail == null || fromEmail.isBlank()) {
+            log.info("Skipping SMTP email to {}: spring.mail.username is not configured.", toEmail);
+            return;
+        }
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-        helper.setFrom(fromEmail);
-        helper.setTo(Objects.requireNonNull(payload.toEmail()));
+        helper.setFrom(Objects.requireNonNull(fromEmail));
+        helper.setTo(Objects.requireNonNull(toEmail));
         helper.setSubject(Objects.requireNonNull(subject));
         helper.setText(Objects.requireNonNull(htmlContent), true);
-
         mailSender.send(message);
-        log.info("Order status email ({}) sent for order #{} to {}", payload.status(), payload.orderId(), payload.toEmail());
+        log.info("Email sent via SMTP to {}", toEmail);
     }
 
     private static String escapeHtml(String input) {
@@ -318,5 +420,32 @@ public class EmailService {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
+    }
+
+    private static String escapeJson(String input) {
+        if (input == null) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder(input.length() + 16);
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            switch (c) {
+                case '\\' -> sb.append("\\\\");
+                case '"' -> sb.append("\\\"");
+                case '\b' -> sb.append("\\b");
+                case '\f' -> sb.append("\\f");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> {
+                    if (c < 0x20) {
+                        sb.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        sb.append(c);
+                    }
+                }
+            }
+        }
+        return sb.toString();
     }
 }
