@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
@@ -6,35 +6,36 @@ import Swal from 'sweetalert2';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-/* ─── Delivery Zones (distance from Sitio Hacienda, Brgy. Danlagan, Padre Burgos) ─── */
+/* ─── Delivery Zones (distance from Sitio Hacienda, Brgy. Danlagan, Padre Burgos, Quezon) ─── */
+// All 22 official barangays of Padre Burgos, Quezon grouped by distance from Brgy. Danlagan
 const DELIVERY_ZONES = [
     {
         id: 'zone1',
         fee: 30,
         label: 'Zone 1 — ₱30 (0–2 km)',
-        description: 'Brgy. Danlagan · Sitio Hacienda and surrounding sitios',
-        barangays: 'Danlagan, Sitio Hacienda'
+        description: 'Brgy. Danlagan · Brgy. Yawe · Brgy. Villapaz',
+        barangays: 'Danlagan, Yawe, Villapaz'
     },
     {
         id: 'zone2',
         fee: 50,
-        label: 'Zone 2 — ₱50 (2–4 km)',
-        description: 'Poblacion I, II, III · Brgy. Mabini · Brgy. San Isidro',
-        barangays: 'Poblacion I, Poblacion II, Poblacion III, Mabini, San Isidro'
+        label: 'Zone 2 — ₱50 (2–5 km)',
+        description: 'Brgy. Walay · Brgy. Rizal · Brgy. San Isidro · Brgy. San Vicente · Brgy. Marquez · Brgy. Lipata',
+        barangays: 'Walay, Rizal, San Isidro, San Vicente, Marquez, Lipata'
     },
     {
         id: 'zone3',
         fee: 75,
-        label: 'Zone 3 — ₱75 (4–7 km)',
-        description: 'Brgy. Calilayan · Brgy. Montecillo · Brgy. Pansol · Brgy. San Jose · Brgy. San Miguel · Brgy. De la Paz',
-        barangays: 'Calilayan, Montecillo, Pansol, San Jose, San Miguel, De la Paz'
+        label: 'Zone 3 — ₱75 (5–8 km)',
+        description: 'Brgy. Duhat · Brgy. Marao · Brgy. Kinagunan Ibaba · Brgy. Kinagunan Ilaya · Brgy. Hinguiwin · Brgy. Sipa',
+        barangays: 'Duhat, Marao, Kinagunan Ibaba, Kinagunan Ilaya, Hinguiwin, Sipa'
     },
     {
         id: 'zone4',
         fee: 100,
-        label: 'Zone 4 — ₱100 (7+ km)',
-        description: 'Brgy. Bucal · Brgy. Cawayan · Brgy. Lungib · Brgy. San Rafael · Brgy. Talipan · Brgy. Silanguin · Brgy. Santo Niño · Other far barangays',
-        barangays: 'Bucal, Cawayan, Lungib, San Rafael, Talipan, Silanguin, Santo Niño, Del Carmen, Ibabang Burgos, Ilayang Burgos'
+        label: 'Zone 4 — ₱100 (8+ km)',
+        description: 'Basiao (Poblacion) · Burgos (Poblacion) · Campo (Poblacion) · Punta (Poblacion) · Brgy. Cabuyao Norte · Brgy. Cabuyao Sur · Brgy. Tulay Buhangin',
+        barangays: 'Basiao, Burgos, Campo, Punta, Cabuyao Norte, Cabuyao Sur, Tulay Buhangin'
     }
 ];
 
