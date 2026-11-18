@@ -172,13 +172,14 @@
 }
 
 .menu-card-img-wrap {
-    width: 82px;
-    height: 82px;
+    width: 95px;
+    height: 95px;
     border-radius: 14px;
     overflow: hidden;
     flex-shrink: 0;
     box-shadow: 0 3px 10px rgba(0,0,0,0.10);
     transition: transform 0.35s ease;
+    background: #fdfbf7;
 }
 
 .menu-product-card:hover .menu-card-img-wrap {
@@ -338,7 +339,7 @@
 @media (max-width: 576px) {
     .menu-hero-banner { padding: 32px 0 48px; }
     .menu-hero-banner::after { height: 28px; }
-    .menu-card-img-wrap { width: 70px; height: 70px; }
+    .menu-card-img-wrap { width: 80px; height: 80px; }
     .order-tracker-banner { padding: 16px; }
     .category-pills-outer::before { width: 20px; }
     .category-pills-outer::after  { width: 20px; }

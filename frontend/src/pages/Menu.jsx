@@ -612,7 +612,7 @@ const Menu = () => {
                                                     <div className="card h-100 border-0 menu-product-card position-relative">
                                                         <div className="d-flex h-100 align-items-center p-3">
                                                             <div className="menu-card-img-wrap">
-                                                                <img src={product.imageUrl || 'https://placehold.co/300x200?text=No+Image'} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                <img src={product.imageUrl || 'https://placehold.co/300x200?text=No+Image'} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
                                                             </div>
                                                             <div className="ms-3 d-flex flex-column h-100 justify-content-center w-100 pt-1" style={{ minWidth: 0 }}>
                                                                 <div className="d-flex justify-content-between align-items-start mb-1 gap-2">
@@ -681,7 +681,7 @@ const Menu = () => {
                                                                         <img 
                                                                             src={product.imageUrl || 'https://placehold.co/300x200?text=No+Image'} 
                                                                             alt={product.name} 
-                                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                                                            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} 
                                                                         />
                                                                     </div>
                                                                     

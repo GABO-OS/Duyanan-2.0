@@ -122,13 +122,45 @@ const DishCustomizationModal = ({ dish, isOpen, onClose, onAddToCart }) => {
                 onClick={e => e.stopPropagation()}
             >
                 {/* ── Header Image & Close Button ── */}
-                <div style={{ position: 'relative', width: '100%', height: '200px', backgroundColor: '#f5eee6' }}>
+                <div style={{ position: 'relative', width: '100%', height: '230px', backgroundColor: '#1f1610', overflow: 'hidden' }}>
+                    {/* Ambient blurred backdrop so any aspect ratio fills cleanly without blank edges */}
                     <img
-                        src={dish.imageUrl || 'https://placehold.co/400x250?text=Duyanan+Dish'}
-                        alt={dish.name}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        src={dish.imageUrl || 'https://placehold.co/600x400/2c2c2c/ffffff?text=Duyanan+Dish'}
+                        alt=""
+                        aria-hidden="true"
+                        style={{
+                            position: 'absolute',
+                            inset: -15,
+                            width: 'calc(100% + 30px)',
+                            height: 'calc(100% + 30px)',
+                            objectFit: 'cover',
+                            objectPosition: 'center',
+                            filter: 'blur(16px) brightness(0.65)',
+                            transform: 'scale(1.15)',
+                            pointerEvents: 'none'
+                        }}
                     />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0.3) 100%)' }} />
+                    {/* Main dish image — uncropped and centered */}
+                    <img
+                        src={dish.imageUrl || 'https://placehold.co/600x400/2c2c2c/ffffff?text=Duyanan+Dish'}
+                        alt={dish.name}
+                        style={{
+                            position: 'relative',
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            objectPosition: 'center',
+                            zIndex: 1
+                        }}
+                    />
+                    {/* Contrast gradient for title readability */}
+                    <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 45%, transparent 75%)',
+                        zIndex: 2,
+                        pointerEvents: 'none'
+                    }} />
 
                     {/* Close button */}
                     <button
@@ -141,23 +173,33 @@ const DishCustomizationModal = ({ dish, isOpen, onClose, onAddToCart }) => {
                             width: '36px',
                             height: '36px',
                             borderRadius: '50%',
-                            backgroundColor: 'rgba(0,0,0,0.45)',
+                            backgroundColor: 'rgba(0,0,0,0.5)',
                             color: '#fff',
-                            border: '1px solid rgba(255,255,255,0.25)',
+                            border: '1px solid rgba(255,255,255,0.3)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             cursor: 'pointer',
                             fontSize: '1.1rem',
                             backdropFilter: 'blur(8px)',
-                            transition: 'all 0.2s ease'
+                            transition: 'all 0.2s ease',
+                            zIndex: 3
                         }}
                     >
                         ✕
                     </button>
 
                     {/* Badges on image */}
-                    <div style={{ position: 'absolute', bottom: '14px', left: '18px', right: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '14px',
+                        left: '18px',
+                        right: '18px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-end',
+                        zIndex: 3
+                    }}>
                         <div>
                             <span style={{
                                 backgroundColor: 'var(--accent-orange)',
@@ -169,11 +211,18 @@ const DishCustomizationModal = ({ dish, isOpen, onClose, onAddToCart }) => {
                                 letterSpacing: '0.04em',
                                 textTransform: 'uppercase',
                                 display: 'inline-block',
-                                marginBottom: '4px'
+                                marginBottom: '4px',
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
                             }}>
                                 {dish.category}
                             </span>
-                            <h3 style={{ color: '#fff', margin: 0, fontWeight: 800, fontSize: '1.35rem', textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>
+                            <h3 style={{
+                                color: '#fff',
+                                margin: 0,
+                                fontWeight: 800,
+                                fontSize: '1.35rem',
+                                textShadow: '0 2px 8px rgba(0,0,0,0.7)'
+                            }}>
                                 {dish.name}
                             </h3>
                         </div>
