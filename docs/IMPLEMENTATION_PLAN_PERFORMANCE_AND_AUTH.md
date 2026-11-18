@@ -97,7 +97,7 @@ graph TD
 
 #### 2.3 Render Environment Configuration Requirements
 - Define exact values to configure in Render Dashboard:
-  - `MAIL_USERNAME=duyanankainan@gmail.com`
+  - `MAIL_USERNAME=duyananpb.ph@gmail.com`
   - `MAIL_PASSWORD=<16-character Google App Password>` (NOT the account login password)
   - `FRONTEND_URL=https://duyanan-restaurant.onrender.com` (matching production URL)
 
@@ -160,7 +160,7 @@ graph TD
    - `SPRING_JPA_HIBERNATE_DDL_AUTO=none`
    - `SHOW_SQL=false`
    - `FRONTEND_URL=https://<your-render-frontend-domain>`
-   - `MAIL_USERNAME=duyanankainan@gmail.com`
+   - `MAIL_USERNAME=duyananpb.ph@gmail.com`
    - `MAIL_PASSWORD=<google-app-password>`
 2. Set up Free Uptime Ping:
    - Configure cron-job.org or UptimeRobot to ping `https://<backend-url>/api/health` every 10 minutes.

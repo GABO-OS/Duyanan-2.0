@@ -31,7 +31,7 @@ public class EmailService {
     private final JavaMailSender mailSender;
     private final HttpClient httpClient;
 
-    @Value("${spring.mail.username:duyanankainan@gmail.com}")
+    @Value("${spring.mail.username:duyananpb.ph@gmail.com}")
     private String fromEmail;
 
     @Value("${app.frontend-url:https://duyanan-frontend.onrender.com}")
@@ -360,7 +360,7 @@ public class EmailService {
         try {
             String senderEmail = (fromEmail != null && !fromEmail.isBlank())
                     ? fromEmail.trim()
-                    : "duyanankainan@gmail.com";
+                    : "duyananpb.ph@gmail.com";
 
             String jsonBody = String.format(
                     "{\"sender\":{\"name\":\"Duyanan Restaurant\",\"email\":\"%s\"}," +

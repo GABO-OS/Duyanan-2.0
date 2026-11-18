@@ -14,7 +14,7 @@ Configure these key-value pairs in **Render Dashboard** -> **duyanan-backend** (
 | `SPRING_JPA_HIBERNATE_DDL_AUTO` | `none` | **Prevents 5–15s cold boot delay.** In production, avoids running DDL table inspections against cloud MySQL on every wake-up. |
 | `SHOW_SQL` | `false` | Disables printing thousands of SQL statements to Render logs, preventing container I/O throttling. |
 | `FRONTEND_URL` | `https://<your-frontend-service>.onrender.com` | **Fixes password reset links.** If missing, links will point to `http://localhost:5173/reset-password?token=...`. |
-| `MAIL_USERNAME` | `duyanankainan@gmail.com` | Gmail account used for sending outgoing password reset emails. |
+| `MAIL_USERNAME` | `duyananpb.ph@gmail.com` | Gmail account used for sending outgoing password reset emails. |
 | `MAIL_PASSWORD` | *(16-character Google App Password)* | **Fixes broken Forgot Password.** Must be an App Password, **NOT** the account password (see setup below). |
 | `JAVA_OPTS` | *(Already pre-configured in Dockerfile)* | Can be overridden in Render if custom heap sizing is needed. |
 
@@ -24,7 +24,7 @@ Configure these key-value pairs in **Render Dashboard** -> **duyanan-backend** (
 
 Gmail blocks direct password authentication over SMTP port 587. You must generate an App Password:
 
-1. Log into Google Account: **`duyanankainan@gmail.com`**.
+1. Log into Google Account: **`duyananpb.ph@gmail.com`**.
 2. Go to **Google Account Settings** -> **Security** ([myaccount.google.com/security](https://myaccount.google.com/security)).
 3. Under *"How you sign in to Google"*, ensure **2-Step Verification** is turned **ON**.
 4. In the top search bar inside Google Account, search for **`App passwords`** (or visit [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)).
