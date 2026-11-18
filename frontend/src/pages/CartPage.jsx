@@ -6,38 +6,68 @@ import Swal from 'sweetalert2';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-/* ─── Delivery Zones (distance from Sitio Hacienda, Brgy. Danlagan, Padre Burgos, Quezon) ─── */
-// All 22 official barangays of Padre Burgos, Quezon grouped by distance from Brgy. Danlagan
-const DELIVERY_ZONES = [
-    {
-        id: 'zone1',
-        fee: 30,
-        label: 'Zone 1 — ₱30 (0–2 km)',
-        description: 'Brgy. Danlagan · Brgy. Yawe · Brgy. Villapaz',
-        barangays: 'Danlagan, Yawe, Villapaz'
-    },
-    {
-        id: 'zone2',
-        fee: 50,
-        label: 'Zone 2 — ₱50 (2–5 km)',
-        description: 'Brgy. Walay · Brgy. Rizal · Brgy. San Isidro · Brgy. San Vicente · Brgy. Marquez · Brgy. Lipata',
-        barangays: 'Walay, Rizal, San Isidro, San Vicente, Marquez, Lipata'
-    },
-    {
-        id: 'zone3',
-        fee: 75,
-        label: 'Zone 3 — ₱75 (5–8 km)',
-        description: 'Brgy. Duhat · Brgy. Marao · Brgy. Kinagunan Ibaba · Brgy. Kinagunan Ilaya · Brgy. Hinguiwin · Brgy. Sipa',
-        barangays: 'Duhat, Marao, Kinagunan Ibaba, Kinagunan Ilaya, Hinguiwin, Sipa'
-    },
-    {
-        id: 'zone4',
-        fee: 100,
-        label: 'Zone 4 — ₱100 (8+ km)',
-        description: 'Basiao (Poblacion) · Burgos (Poblacion) · Campo (Poblacion) · Punta (Poblacion) · Brgy. Cabuyao Norte · Brgy. Cabuyao Sur · Brgy. Tulay Buhangin',
-        barangays: 'Basiao, Burgos, Campo, Punta, Cabuyao Norte, Cabuyao Sur, Tulay Buhangin'
-    }
+/* ─── Distance-Based Shipping Fee from Duyanan Restaurant (Sitio Hacienda, Brgy. Danlagan, Padre Burgos) ─── */
+const PADRE_BURGOS_BARANGAYS = [
+    // ₱30 — Zone 1: Nearest (~0–2 km from Sitio Hacienda, Brgy. Danlagan)
+    { name: 'Danlagan', fee: 30, distance: '0–2 km', keywords: ['danlagan', 'hacienda', 'sitio hacienda'] },
+    { name: 'Yawe', fee: 30, distance: '0–2 km', keywords: ['yawe'] },
+    { name: 'Villapaz', fee: 30, distance: '0–2 km', keywords: ['villapaz', 'villa paz', 'vilapaz'] },
+
+    // ₱50 — Zone 2: Mid-close (~2–5 km)
+    { name: 'Walay', fee: 50, distance: '2–5 km', keywords: ['walay'] },
+    { name: 'Rizal', fee: 50, distance: '2–5 km', keywords: ['rizal'] },
+    { name: 'San Isidro', fee: 50, distance: '2–5 km', keywords: ['san isidro', 'isidro'] },
+    { name: 'San Vicente', fee: 50, distance: '2–5 km', keywords: ['san vicente', 'vicente'] },
+    { name: 'Marquez', fee: 50, distance: '2–5 km', keywords: ['marquez', 'marques'] },
+    { name: 'Lipata', fee: 50, distance: '2–5 km', keywords: ['lipata'] },
+
+    // ₱75 — Zone 3: Mid-far (~5–8 km)
+    { name: 'Duhat', fee: 75, distance: '5–8 km', keywords: ['duhat'] },
+    { name: 'Marao', fee: 75, distance: '5–8 km', keywords: ['marao'] },
+    { name: 'Kinagunan Ibaba', fee: 75, distance: '5–8 km', keywords: ['kinagunan ibaba', 'kinagunan-ibaba'] },
+    { name: 'Kinagunan Ilaya', fee: 75, distance: '5–8 km', keywords: ['kinagunan ilaya', 'kinagunan-ilaya', 'kinagunan'] },
+    { name: 'Hinguiwin', fee: 75, distance: '5–8 km', keywords: ['hinguiwin', 'hingiwin'] },
+    { name: 'Sipa', fee: 75, distance: '5–8 km', keywords: ['sipa'] },
+
+    // ₱100 — Zone 4: Far & Poblacion (~8+ km)
+    { name: 'Basiao (Poblacion)', fee: 100, distance: '8+ km', keywords: ['basiao'] },
+    { name: 'Burgos (Poblacion)', fee: 100, distance: '8+ km', keywords: ['burgos poblacion', 'poblacion burgos', 'brgy burgos', 'brgy. burgos'] },
+    { name: 'Campo (Poblacion)', fee: 100, distance: '8+ km', keywords: ['campo'] },
+    { name: 'Punta (Poblacion)', fee: 100, distance: '8+ km', keywords: ['punta'] },
+    { name: 'Poblacion', fee: 100, distance: '8+ km', keywords: ['poblacion', 'pob.'] },
+    { name: 'Cabuyao Norte', fee: 100, distance: '8+ km', keywords: ['cabuyao norte', 'cabuyao-norte'] },
+    { name: 'Cabuyao Sur', fee: 100, distance: '8+ km', keywords: ['cabuyao sur', 'cabuyao-sur', 'cabuyao'] },
+    { name: 'Tulay Buhangin', fee: 100, distance: '8+ km', keywords: ['tulay buhangin', 'tulay-buhangin', 'tulay'] }
 ];
+
+const detectDeliveryFee = (address) => {
+    if (!address || typeof address !== 'string' || !address.trim()) {
+        return { fee: 50, barangay: null, distance: null, matched: false };
+    }
+    const clean = address.toLowerCase();
+
+    // 1. Check for specific barangays
+    for (const b of PADRE_BURGOS_BARANGAYS) {
+        for (const kw of b.keywords) {
+            const regex = new RegExp(`(^|[^a-z0-9])${kw}([^a-z0-9]|$)`, 'i');
+            if (regex.test(clean) || clean.includes(kw)) {
+                return {
+                    fee: b.fee,
+                    barangay: b.name,
+                    distance: b.distance,
+                    matched: true
+                };
+            }
+        }
+    }
+
+    // 2. If general Padre Burgos is present, default to standard 50
+    if (clean.includes('padre burgos') || clean.includes('burgos')) {
+        return { fee: 50, barangay: 'Padre Burgos (General)', distance: 'Estimated', matched: true };
+    }
+
+    return { fee: 50, barangay: null, distance: null, matched: false };
+};
 
 /* ─── Scoped Styles ─── */
 const styles = `
@@ -283,22 +313,33 @@ const styles = `
         color: #fff;
     }
 
-    /* Delivery Zone Selector */
-    .zone-selector { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
-    .zone-card { border: 1.5px solid #e8e0d8; border-radius: 12px; padding: 14px 16px; cursor: pointer;
-        background: #fdfbf9; transition: all 0.2s; display: flex; align-items: center; gap: 14px; }
-    .zone-card:hover { border-color: var(--accent-orange); background: rgba(211,84,0,0.03); }
-    .zone-card.selected { border-color: var(--accent-orange); background: rgba(211,84,0,0.04);
-        box-shadow: 0 2px 10px rgba(211,84,0,0.1); }
-    .zone-fee-badge { min-width: 56px; height: 42px; border-radius: 10px; display: flex; align-items: center;
-        justify-content: center; font-size: 0.88rem; font-weight: 800; flex-shrink: 0;
-        background: #fff3e0; color: var(--accent-orange); border: 1.5px solid #ffe0b2; }
-    .zone-card.selected .zone-fee-badge { background: var(--accent-orange); color: #fff; border-color: var(--accent-orange); }
-    .zone-info { flex: 1; min-width: 0; }
-    .zone-label { font-weight: 700; font-size: 0.88rem; color: var(--primary-brown); }
-    .zone-desc { font-size: 0.75rem; color: #999; margin-top: 2px; line-height: 1.4; }
-    .zone-radio { width: 18px; height: 18px; accent-color: var(--accent-orange); flex-shrink: 0; }
-    .zone-required-notice { background: #fff8f0; border: 1.5px solid #fde4c2; border-radius: 10px;
+    /* Auto-detected Delivery Fee Badge */
+    .delivery-fee-badge-box {
+        background: #fdfbf9;
+        border: 1.5px solid #e8e0d8;
+        border-radius: 12px;
+        padding: 12px 16px;
+        transition: all 0.25s ease;
+    }
+    .delivery-fee-badge-box.matched {
+        background: #f0fff6;
+        border-color: #a3e6b7;
+    }
+    .delivery-fee-pill {
+        background: #fff3e0;
+        color: var(--accent-orange);
+        border: 1.5px solid #ffe0b2;
+        border-radius: 8px;
+        padding: 4px 12px;
+        display: inline-flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+    .delivery-fee-badge-box.matched .delivery-fee-pill {
+        background: #e6f9ed;
+        color: #1e8449;
+        border-color: #b7e4c7;
+    } border: 1.5px solid #fde4c2; border-radius: 10px;
         padding: 10px 14px; font-size: 0.8rem; color: #a04000; display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 `;
 
@@ -351,8 +392,13 @@ const CartPage = () => {
     const [loadingProfile, setLoadingProfile] = useState(false);
     const [fulfillmentMethod, setFulfillmentMethod] = useState('DELIVERY'); // 'DELIVERY' or 'PICKUP'
     const [isEligibleForDelivery, setIsEligibleForDelivery] = useState(false);
-    const [shippingFee, setShippingFee] = useState(0);
-    const [selectedZone, setSelectedZone] = useState(null); // zone object from DELIVERY_ZONES
+    // Auto-calculated delivery fee based on customer address
+    const deliveryFeeInfo = React.useMemo(() => {
+        if (fulfillmentMethod !== 'DELIVERY' || reservationId) {
+            return { fee: 0, barangay: null, distance: null, matched: false };
+        }
+        return detectDeliveryFee(checkoutForm.deliveryAddress);
+    }, [fulfillmentMethod, reservationId, checkoutForm.deliveryAddress]);
 
     // ── GCash Payment & Receipt Proof State ──
     const [paymentProofFile, setPaymentProofFile] = useState(null);
@@ -486,7 +532,7 @@ const CartPage = () => {
     const itemCount = selectedCart.reduce((sum, item) => sum + item.quantity, 0);
     const subtotal = selectedCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const isDeliveryOrder = !reservationId && fulfillmentMethod === 'DELIVERY';
-    const appliedShipping = isDeliveryOrder ? shippingFee : 0;
+    const appliedShipping = isDeliveryOrder ? deliveryFeeInfo.fee : 0;
     const grandTotal = subtotal + appliedShipping;
     // Keep 'total' as an alias for grandTotal so existing code stays compatible
     const total = grandTotal;
@@ -612,16 +658,7 @@ const CartPage = () => {
             return;
         }
 
-        // Require delivery zone when delivery is selected
-        if (needsAddress && !selectedZone) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Delivery Zone Required',
-                html: '<div style="font-size:0.95rem;line-height:1.5;">Please select your <b>Delivery Zone</b> so we can calculate the correct shipping fee.</div>',
-                confirmButtonColor: '#A04000'
-            });
-            return;
-        }
+
 
         // Validate GCash Receipt upload
         if (checkoutForm.paymentMethod === 'GCASH' && !paymentProofFile) {
@@ -697,7 +734,7 @@ const CartPage = () => {
                         paymentProofImage: uploadedProofUrl,
                         paymentReference: paymentProofReference ? paymentProofReference.trim() : null,
                         shippingFee: isDeliveryOrder ? appliedShipping : 0,
-                        deliveryZone: isDeliveryOrder && selectedZone ? selectedZone.label : null,
+                        deliveryZone: isDeliveryOrder ? (deliveryFeeInfo.barangay ? `Brgy. ${deliveryFeeInfo.barangay} (₱${appliedShipping})` : 'Padre Burgos') : null,
                         notes: combinedNotes,
                         items: selectedCart.map(item => ({
                             productId: item.id,
@@ -716,7 +753,7 @@ const CartPage = () => {
                         total: grandTotal,
                         subtotal: subtotal,
                         shippingFee: appliedShipping,
-                        deliveryZone: selectedZone ? selectedZone.label : null,
+                        deliveryZone: isDeliveryOrder ? (deliveryFeeInfo.barangay ? `Brgy. ${deliveryFeeInfo.barangay}` : 'Padre Burgos') : null,
                         recipientName: checkoutForm.recipientName,
                         deliveryAddress: addressOrType,
                         paymentMethod: checkoutForm.paymentMethod,
@@ -1116,9 +1153,39 @@ const CartPage = () => {
                                                         value={checkoutForm.deliveryAddress}
                                                         onChange={handleFormChange}
                                                         rows="3"
-                                                        placeholder="Enter complete house number, street, barangay, and municipality"
+                                                        placeholder="e.g. Sitio Riverside, Brgy. Danlagan, Padre Burgos, Quezon"
                                                         required
                                                     />
+                                                    {/* Auto-detected Delivery Fee Indicator */}
+                                                    <div className={`delivery-fee-badge-box mt-2 ${deliveryFeeInfo.matched ? 'matched' : ''}`}>
+                                                        <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                            <div className="d-flex align-items-center gap-2">
+                                                                <i className={`bi ${deliveryFeeInfo.matched ? 'bi-check-circle-fill text-success' : 'bi-geo-alt-fill text-primary'}`} style={{ fontSize: '1.15rem' }}></i>
+                                                                <div>
+                                                                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-brown)' }}>
+                                                                        {deliveryFeeInfo.matched ? (
+                                                                            <span>Delivery to <strong>Brgy. {deliveryFeeInfo.barangay}</strong> {deliveryFeeInfo.distance && <span className="text-muted small">({deliveryFeeInfo.distance})</span>}</span>
+                                                                        ) : (
+                                                                            <span>Shipping fee auto-detected from address</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div style={{ fontSize: '0.74rem', color: '#888' }}>
+                                                                        Based on distance from Duyanan Restaurant (Sitio Hacienda, Brgy. Danlagan)
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="delivery-fee-pill">
+                                                                <span style={{ fontSize: '0.75rem', opacity: 0.85, marginRight: 4 }}>Fee:</span>
+                                                                <strong style={{ fontSize: '1rem' }}>₱{appliedShipping}</strong>
+                                                            </div>
+                                                        </div>
+                                                        {!deliveryFeeInfo.matched && checkoutForm.deliveryAddress.trim().length > 0 && (
+                                                            <div className="mt-2 pt-2 border-top" style={{ fontSize: '0.75rem', color: '#b7791f', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                <i className="bi bi-info-circle-fill"></i>
+                                                                <span>Include your <strong>Barangay</strong> (e.g., Danlagan, Rizal, Duhat, Poblacion) for exact rate (₱30, ₱50, ₱75, or ₱100).</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <div className="form-group-custom">
@@ -1421,10 +1488,14 @@ const CartPage = () => {
                                         <div className="summary-row">
                                             <span style={{ color: '#888', fontSize: '0.9rem' }}>
                                                 🛵 Shipping Fee
-                                                {selectedZone && <span style={{ fontSize: '0.72rem', color: '#bbb', marginLeft: 4 }}>({selectedZone.id.toUpperCase()})</span>}
+                                                {deliveryFeeInfo.barangay && (
+                                                    <span style={{ fontSize: '0.75rem', color: '#888', marginLeft: 4 }}>
+                                                        ({deliveryFeeInfo.barangay})
+                                                    </span>
+                                                )}
                                             </span>
-                                            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: appliedShipping > 0 ? '#e67e22' : '#bbb' }}>
-                                                {appliedShipping > 0 ? `₱${appliedShipping.toFixed(2)}` : '— Select zone'}
+                                            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#e67e22' }}>
+                                                ₱{appliedShipping.toFixed(2)}
                                             </span>
                                         </div>
                                     )}
