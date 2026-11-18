@@ -365,6 +365,8 @@ const server = http.createServer(async (req, res) => {
     }
     if (pathname === '/api/orders' && method === 'POST') {
         const body = await getRequestBody(req);
+        const shippingFee = Number(body.shippingFee) || 0;
+        const itemsTotal = (body.items || []).reduce((sum, it) => sum + (it.price || 100) * it.quantity, 0);
         const newOrder = {
             id: orders.length > 0 ? Math.max(...orders.map(o => o.id)) + 1 : 1,
             user: users[0],
@@ -375,7 +377,9 @@ const server = http.createServer(async (req, res) => {
                 product: products.find(p => p.id === it.productId) || { name: 'Delicious Dish' },
                 variant: it.variant
             })),
-            totalAmount: (body.items || []).reduce((sum, it) => sum + (it.price || 100) * it.quantity, 0),
+            shippingFee: shippingFee,
+            deliveryZone: body.deliveryZone || null,
+            totalAmount: itemsTotal + shippingFee,
             status: 'PENDING',
             orderDate: new Date().toISOString(),
             orderType: body.orderType || 'DELIVERY',
