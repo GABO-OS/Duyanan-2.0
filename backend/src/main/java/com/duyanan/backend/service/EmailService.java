@@ -83,7 +83,7 @@ public class EmailService {
                             We received a request to reset the password for your Duyanan account. Click the button below to set a new password:
                         </p>
                         <div style="text-align: center; margin: 30px 0;">
-                            <a href="%s" style="display: inline-block; background: linear-gradient(135deg, #c2703a, #a0522d); color: #fff; text-decoration: none; padding: 14px 40px; border-radius: 50px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 15px rgba(194,112,58,0.4);">
+                            <a href="{{RESET_LINK}}" style="display: inline-block; background: linear-gradient(135deg, #c2703a, #a0522d); color: #fff; text-decoration: none; padding: 14px 40px; border-radius: 50px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 15px rgba(194,112,58,0.4);">
                                 Reset My Password
                             </a>
                         </div>
@@ -93,11 +93,11 @@ public class EmailService {
                         <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 25px 0;">
                         <p style="color: #666; font-size: 12px; text-align: center;">
                             If the button doesn't work, copy and paste this link into your browser:<br>
-                            <a href="%s" style="color: #c2703a; word-break: break-all;">%s</a>
+                            <a href="{{RESET_LINK}}" style="color: #c2703a; word-break: break-all;">{{RESET_LINK}}</a>
                         </p>
                     </div>
                 </div>
-                """.formatted(resetLink, resetLink, resetLink);
+                """.replace("{{RESET_LINK}}", resetLink);
 
         dispatchHtmlEmail(toEmail, subject, htmlContent);
     }
@@ -214,20 +214,17 @@ public class EmailService {
 
         String itemsSection = itemsHtml.isEmpty()
                 ? ""
-                : """
-                  <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-                      %s
-                  </table>
-                  """.formatted(itemsHtml.toString());
+                : "<table style=\"width:100%;border-collapse:collapse;margin:16px 0;\">"
+                  + itemsHtml
+                  + "</table>";
 
         String cancellationHtml = ("CANCELLED".equals(payload.status())
                 && payload.cancellationReason() != null
                 && !payload.cancellationReason().isBlank())
-                ? """
-                  <div style="background:#fdf0f0;border-left:4px solid #e74c3c;padding:12px 16px;border-radius:8px;margin:16px 0;color:#a93226;font-size:14px;">
-                      <strong>Cancellation Reason:</strong> %s
-                  </div>
-                  """.formatted(escapeHtml(payload.cancellationReason()))
+                ? "<div style=\"background:#fdf0f0;border-left:4px solid #e74c3c;padding:12px 16px;border-radius:8px;margin:16px 0;color:#a93226;font-size:14px;\">"
+                  + "<strong>Cancellation Reason:</strong> "
+                  + escapeHtml(payload.cancellationReason())
+                  + "</div>"
                 : "";
 
         String orderTypeLabel = switch (payload.orderType().toUpperCase()) {
@@ -238,34 +235,35 @@ public class EmailService {
 
         String profileLink = frontendUrl + "/profile";
         String subject = String.format("Duyanan Restaurant — Order #%d Update: %s", payload.orderId(), statusLabel);
+        String totalFormatted = String.format("₱%.2f", payload.totalAmount());
 
         String htmlContent = """
                 <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fdfbf7; border-radius: 16px; overflow: hidden; border: 1px solid #ede5dc;">
                     <div style="background: linear-gradient(135deg, #6e2c00 0%, #28140a 100%); padding: 32px 24px; text-align: center;">
                         <h1 style="color: #fff; margin: 0; font-size: 24px;">🍽️ Duyanan Restaurant</h1>
-                        <p style="color: rgba(255,200,120,0.9); margin: 8px 0 0; font-size: 14px;">Order #%d Status Update</p>
+                        <p style="color: rgba(255,200,120,0.9); margin: 8px 0 0; font-size: 14px;">Order #{{ORDER_ID}} Status Update</p>
                     </div>
                     <div style="padding: 28px 24px; background: #ffffff;">
-                        <p style="color: #333; font-size: 15px; margin-top: 0;">Hello <strong>%s</strong>,</p>
+                        <p style="color: #333; font-size: 15px; margin-top: 0;">Hello <strong>{{FIRST_NAME}}</strong>,</p>
                         <div style="margin: 16px 0;">
-                            <span style="display: inline-block; background: %s; color: #fff; padding: 6px 16px; border-radius: 50px; font-size: 13px; font-weight: bold;">
-                                %s
+                            <span style="display: inline-block; background: {{BADGE_COLOR}}; color: #fff; padding: 6px 16px; border-radius: 50px; font-size: 13px; font-weight: bold;">
+                                {{STATUS_LABEL}}
                             </span>
                         </div>
-                        <p style="color: #555; font-size: 15px; line-height: 1.6;">%s</p>
-                        %s
+                        <p style="color: #555; font-size: 15px; line-height: 1.6;">{{STATUS_HEADLINE}}</p>
+                        {{CANCELLATION_HTML}}
                         <div style="background: #faf6f1; border-radius: 12px; padding: 16px 20px; margin: 20px 0; border: 1px solid #f0e6db;">
                             <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #8b624b; font-weight: bold; margin-bottom: 8px;">
-                                Order Summary • %s
+                                Order Summary • {{ORDER_TYPE}}
                             </div>
-                            %s
+                            {{ITEMS_SECTION}}
                             <div style="display: flex; justify-content: space-between; padding-top: 10px; font-size: 16px; font-weight: bold; color: #6e2c00;">
                                 <span>Total Amount:&nbsp;</span>
-                                <span>₱%.2f</span>
+                                <span>{{TOTAL_AMOUNT}}</span>
                             </div>
                         </div>
                         <div style="text-align: center; margin: 28px 0 12px;">
-                            <a href="%s" style="display: inline-block; background: linear-gradient(135deg, #d35400, #a04000); color: #fff; text-decoration: none; padding: 12px 32px; border-radius: 50px; font-weight: bold; font-size: 14px;">
+                            <a href="{{PROFILE_LINK}}" style="display: inline-block; background: linear-gradient(135deg, #d35400, #a04000); color: #fff; text-decoration: none; padding: 12px 32px; border-radius: 50px; font-weight: bold; font-size: 14px;">
                                 View My Order
                             </a>
                         </div>
@@ -274,18 +272,17 @@ public class EmailService {
                         Duyanan Restaurant • Padre Burgos, Quezon
                     </div>
                 </div>
-                """.formatted(
-                payload.orderId(),
-                escapeHtml(payload.firstName()),
-                statusBadgeColor,
-                escapeHtml(statusLabel),
-                escapeHtml(statusHeadline),
-                cancellationHtml,
-                escapeHtml(orderTypeLabel),
-                itemsSection,
-                payload.totalAmount(),
-                profileLink
-        );
+                """
+                .replace("{{ORDER_ID}}", String.valueOf(payload.orderId()))
+                .replace("{{FIRST_NAME}}", escapeHtml(payload.firstName()))
+                .replace("{{BADGE_COLOR}}", statusBadgeColor)
+                .replace("{{STATUS_LABEL}}", escapeHtml(statusLabel))
+                .replace("{{STATUS_HEADLINE}}", escapeHtml(statusHeadline))
+                .replace("{{CANCELLATION_HTML}}", cancellationHtml)
+                .replace("{{ORDER_TYPE}}", escapeHtml(orderTypeLabel))
+                .replace("{{ITEMS_SECTION}}", itemsSection)
+                .replace("{{TOTAL_AMOUNT}}", totalFormatted)
+                .replace("{{PROFILE_LINK}}", profileLink);
 
         dispatchHtmlEmail(payload.toEmail(), subject, htmlContent);
         log.info("Order status email ({}) dispatched for order #{} to {}", payload.status(), payload.orderId(), payload.toEmail());
@@ -312,6 +309,7 @@ public class EmailService {
             if (sendViaBrevo(safeTo, safeSubject, safeHtml)) {
                 return;
             }
+            throw new MessagingException("Brevo HTTPS API delivery failed. Check Render logs for Brevo HTTP status response.");
         }
 
         // Priority 3: Standard SMTP (JavaMailSender)
