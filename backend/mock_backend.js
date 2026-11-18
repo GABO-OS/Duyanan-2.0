@@ -58,7 +58,7 @@ let products = [
     { id: 402, name: 'Nachos', category: 'Nachos' },
     { id: 403, name: 'Pork Siomai', category: 'Home-Made Siomai' },
     { id: 404, name: 'Sinigang Soup', category: 'Soup' },
-    { id: 405, name: 'Extra Rice', category: 'Extras' },
+    { id: 405, name: 'Blue Rice', category: 'Extras', priceSolo: 15.00 },
     { id: 406, name: 'Clubhouse Sandwich', category: 'Sandwich' },
     { id: 407, name: 'Burger with Fries', category: 'Student Meals' },
     { id: 501, name: 'Iced Tea', category: 'Drinks' },

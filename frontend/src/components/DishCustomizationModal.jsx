@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 const ADD_ONS_LIST = [
-    { id: 'rice', name: 'Extra Garlic Rice', price: 30, emoji: '🍚' },
+    { id: 'rice', name: 'Blue Rice', price: 15, emoji: '🍚' },
     { id: 'gravy', name: 'Rich Savory Gravy', price: 15, emoji: '🥣' },
     { id: 'atchara', name: 'Homemade Atchara', price: 20, emoji: '🥗' },
     { id: 'egg', name: 'Fried Egg', price: 20, emoji: '🍳' },
