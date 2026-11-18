@@ -103,6 +103,10 @@ public class DatabaseInitializer implements CommandLineRunner {
         safeAddColumn("orders", "payment_proof_image", "VARCHAR(500)");
         safeAddColumn("orders", "payment_reference", "VARCHAR(100)");
 
+        // 6. Ensure delivery shipping fee and zone columns exist
+        safeAddColumn("orders", "shipping_fee", "DOUBLE DEFAULT 0.0");
+        safeAddColumn("orders", "delivery_zone", "VARCHAR(100)");
+
         log.info("Database schema consistency check completed successfully.");
     }
 

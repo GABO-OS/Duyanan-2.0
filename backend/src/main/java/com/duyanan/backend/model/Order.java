@@ -53,6 +53,12 @@ public class Order {
     @Column(name = "payment_reference", length = 100)
     private String paymentReference;
 
+    @Column(name = "shipping_fee")
+    private Double shippingFee = 0.0;
+
+    @Column(name = "delivery_zone", length = 100)
+    private String deliveryZone;
+
     private String notes;
 
     @Column(name = "cancellation_reason")

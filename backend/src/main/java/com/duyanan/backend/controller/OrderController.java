@@ -165,6 +165,19 @@ public class OrderController {
                 totalAmount += item.getSubtotal();
             }
 
+            // Shipping fee (delivery orders only)
+            double shippingFee = 0.0;
+            if (body.get("shippingFee") != null) {
+                try { shippingFee = Double.parseDouble(body.get("shippingFee").toString()); } catch (NumberFormatException ignored) {}
+            }
+            if (shippingFee < 0) shippingFee = 0.0;
+            order.setShippingFee(shippingFee);
+            totalAmount += shippingFee;
+
+            if (body.get("deliveryZone") != null && !body.get("deliveryZone").toString().isBlank()) {
+                order.setDeliveryZone(body.get("deliveryZone").toString().trim());
+            }
+
             order.setTotalAmount(totalAmount);
             Order saved = orderRepository.save(order);
 

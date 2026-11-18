@@ -1,10 +1,42 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
 const API_URL = import.meta.env.VITE_API_URL;
+
+/* ─── Delivery Zones (distance from Sitio Hacienda, Brgy. Danlagan, Padre Burgos) ─── */
+const DELIVERY_ZONES = [
+    {
+        id: 'zone1',
+        fee: 30,
+        label: 'Zone 1 — ₱30 (0–2 km)',
+        description: 'Brgy. Danlagan · Sitio Hacienda and surrounding sitios',
+        barangays: 'Danlagan, Sitio Hacienda'
+    },
+    {
+        id: 'zone2',
+        fee: 50,
+        label: 'Zone 2 — ₱50 (2–4 km)',
+        description: 'Poblacion I, II, III · Brgy. Mabini · Brgy. San Isidro',
+        barangays: 'Poblacion I, Poblacion II, Poblacion III, Mabini, San Isidro'
+    },
+    {
+        id: 'zone3',
+        fee: 75,
+        label: 'Zone 3 — ₱75 (4–7 km)',
+        description: 'Brgy. Calilayan · Brgy. Montecillo · Brgy. Pansol · Brgy. San Jose · Brgy. San Miguel · Brgy. De la Paz',
+        barangays: 'Calilayan, Montecillo, Pansol, San Jose, San Miguel, De la Paz'
+    },
+    {
+        id: 'zone4',
+        fee: 100,
+        label: 'Zone 4 — ₱100 (7+ km)',
+        description: 'Brgy. Bucal · Brgy. Cawayan · Brgy. Lungib · Brgy. San Rafael · Brgy. Talipan · Brgy. Silanguin · Brgy. Santo Niño · Other far barangays',
+        barangays: 'Bucal, Cawayan, Lungib, San Rafael, Talipan, Silanguin, Santo Niño, Del Carmen, Ibabang Burgos, Ilayang Burgos'
+    }
+];
 
 /* ─── Scoped Styles ─── */
 const styles = `
@@ -249,6 +281,24 @@ const styles = `
         background: #007dfe;
         color: #fff;
     }
+
+    /* Delivery Zone Selector */
+    .zone-selector { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .zone-card { border: 1.5px solid #e8e0d8; border-radius: 12px; padding: 14px 16px; cursor: pointer;
+        background: #fdfbf9; transition: all 0.2s; display: flex; align-items: center; gap: 14px; }
+    .zone-card:hover { border-color: var(--accent-orange); background: rgba(211,84,0,0.03); }
+    .zone-card.selected { border-color: var(--accent-orange); background: rgba(211,84,0,0.04);
+        box-shadow: 0 2px 10px rgba(211,84,0,0.1); }
+    .zone-fee-badge { min-width: 56px; height: 42px; border-radius: 10px; display: flex; align-items: center;
+        justify-content: center; font-size: 0.88rem; font-weight: 800; flex-shrink: 0;
+        background: #fff3e0; color: var(--accent-orange); border: 1.5px solid #ffe0b2; }
+    .zone-card.selected .zone-fee-badge { background: var(--accent-orange); color: #fff; border-color: var(--accent-orange); }
+    .zone-info { flex: 1; min-width: 0; }
+    .zone-label { font-weight: 700; font-size: 0.88rem; color: var(--primary-brown); }
+    .zone-desc { font-size: 0.75rem; color: #999; margin-top: 2px; line-height: 1.4; }
+    .zone-radio { width: 18px; height: 18px; accent-color: var(--accent-orange); flex-shrink: 0; }
+    .zone-required-notice { background: #fff8f0; border: 1.5px solid #fde4c2; border-radius: 10px;
+        padding: 10px 14px; font-size: 0.8rem; color: #a04000; display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 `;
 
 /* ─── Format Group Meal JSON ─── */
@@ -300,6 +350,8 @@ const CartPage = () => {
     const [loadingProfile, setLoadingProfile] = useState(false);
     const [fulfillmentMethod, setFulfillmentMethod] = useState('DELIVERY'); // 'DELIVERY' or 'PICKUP'
     const [isEligibleForDelivery, setIsEligibleForDelivery] = useState(false);
+    const [shippingFee, setShippingFee] = useState(0);
+    const [selectedZone, setSelectedZone] = useState(null); // zone object from DELIVERY_ZONES
 
     // ── GCash Payment & Receipt Proof State ──
     const [paymentProofFile, setPaymentProofFile] = useState(null);
@@ -431,7 +483,12 @@ const CartPage = () => {
 
     // Totals are computed from SELECTED items only
     const itemCount = selectedCart.reduce((sum, item) => sum + item.quantity, 0);
-    const total = selectedCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const subtotal = selectedCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const isDeliveryOrder = !reservationId && fulfillmentMethod === 'DELIVERY';
+    const appliedShipping = isDeliveryOrder ? shippingFee : 0;
+    const grandTotal = subtotal + appliedShipping;
+    // Keep 'total' as an alias for grandTotal so existing code stays compatible
+    const total = grandTotal;
     const cartTotalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
     const handleIncrement = (item) => {
@@ -554,12 +611,23 @@ const CartPage = () => {
             return;
         }
 
+        // Require delivery zone when delivery is selected
+        if (needsAddress && !selectedZone) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Delivery Zone Required',
+                html: '<div style="font-size:0.95rem;line-height:1.5;">Please select your <b>Delivery Zone</b> so we can calculate the correct shipping fee.</div>',
+                confirmButtonColor: '#A04000'
+            });
+            return;
+        }
+
         // Validate GCash Receipt upload
         if (checkoutForm.paymentMethod === 'GCASH' && !paymentProofFile) {
             Swal.fire({
                 icon: 'warning',
                 title: 'GCash Receipt Required',
-                html: `<div style="font-size:0.95rem; line-height:1.5;">Please transfer <b>₱${total.toFixed(2)}</b> to the GCash details provided and upload your receipt screenshot before placing the order.</div>`,
+                html: `<div style="font-size:0.95rem; line-height:1.5;">Please transfer <b>₱${grandTotal.toFixed(2)}</b> to the GCash details provided and upload your receipt screenshot before placing the order.</div>`,
                 confirmButtonColor: '#007DFE',
                 confirmButtonText: '<i class="bi bi-upload me-1"></i> Upload Receipt Now'
             });
@@ -568,7 +636,7 @@ const CartPage = () => {
 
         const result = await Swal.fire({
             title: 'Place Order?',
-            html: `<div style="font-size:0.95rem">Confirm order for <b>${itemCount} item${itemCount !== 1 ? 's' : ''}</b> totaling <b style="color:#a04000">₱${total.toFixed(2)}</b> via <b>${checkoutForm.paymentMethod === 'COD' ? 'Cash on Delivery' : 'G-Cash'}</b>?</div>`,
+            html: `<div style="font-size:0.95rem">Confirm order for <b>${itemCount} item${itemCount !== 1 ? 's' : ''}</b>${appliedShipping > 0 ? ` + <b style="color:#27ae60">₱${appliedShipping.toFixed(0)} shipping</b>` : ''} totaling <b style="color:#a04000">₱${grandTotal.toFixed(2)}</b> via <b>${checkoutForm.paymentMethod === 'COD' ? 'Cash on Delivery' : 'G-Cash'}</b>?</div>`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#A04000',
@@ -627,6 +695,8 @@ const CartPage = () => {
                         paymentMethod: checkoutForm.paymentMethod,
                         paymentProofImage: uploadedProofUrl,
                         paymentReference: paymentProofReference ? paymentProofReference.trim() : null,
+                        shippingFee: isDeliveryOrder ? appliedShipping : 0,
+                        deliveryZone: isDeliveryOrder && selectedZone ? selectedZone.label : null,
                         notes: combinedNotes,
                         items: selectedCart.map(item => ({
                             productId: item.id,
@@ -642,7 +712,10 @@ const CartPage = () => {
                 if (response.ok) {
                     setOrderResult({
                         id: data.id || data.orderId || 'N/A',
-                        total: total,
+                        total: grandTotal,
+                        subtotal: subtotal,
+                        shippingFee: appliedShipping,
+                        deliveryZone: selectedZone ? selectedZone.label : null,
                         recipientName: checkoutForm.recipientName,
                         deliveryAddress: addressOrType,
                         paymentMethod: checkoutForm.paymentMethod,
@@ -1118,7 +1191,7 @@ const CartPage = () => {
                                                         <div className="d-flex justify-content-between align-items-center">
                                                             <div>
                                                                 <span className="text-muted small me-2">Exact Amount to Pay:</span>
-                                                                <span className="fw-bold" style={{ color: 'var(--accent-orange)', fontSize: '1.05rem' }}>₱{total.toFixed(2)}</span>
+                                                                <span className="fw-bold" style={{ color: 'var(--accent-orange)', fontSize: '1.05rem' }}>₱{grandTotal.toFixed(2)}</span>
                                                             </div>
                                                             <button 
                                                                 type="button" 
@@ -1210,7 +1283,7 @@ const CartPage = () => {
                                                     </div>
                                                 </div>
                                                 <div className="text-muted small mt-2" style={{ fontSize: '0.78rem' }}>
-                                                    Pay exact amount: <b className="text-dark">₱{total.toFixed(2)}</b>
+                                                    Pay exact amount: <b className="text-dark">₱{grandTotal.toFixed(2)}</b>
                                                 </div>
                                             </div>
 
@@ -1334,8 +1407,8 @@ const CartPage = () => {
                                     </h5>
 
                                     <div className="summary-row">
-                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Items ({itemCount})</span>
-                                        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>₱{total.toFixed(2)}</span>
+                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Subtotal ({itemCount} items)</span>
+                                        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>₱{subtotal.toFixed(2)}</span>
                                     </div>
                                     <div className="summary-row">
                                         <span style={{ color: '#888', fontSize: '0.9rem' }}>{reservationId ? 'Order Type' : 'Fulfillment'}</span>
@@ -1343,13 +1416,24 @@ const CartPage = () => {
                                             {reservationId ? 'Dine-In 🍽️' : fulfillmentMethod === 'PICKUP' ? '🏃 Pick-Up' : '🚚 Delivery'}
                                         </span>
                                     </div>
+                                    {isDeliveryOrder && (
+                                        <div className="summary-row">
+                                            <span style={{ color: '#888', fontSize: '0.9rem' }}>
+                                                🛵 Shipping Fee
+                                                {selectedZone && <span style={{ fontSize: '0.72rem', color: '#bbb', marginLeft: 4 }}>({selectedZone.id.toUpperCase()})</span>}
+                                            </span>
+                                            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: appliedShipping > 0 ? '#e67e22' : '#bbb' }}>
+                                                {appliedShipping > 0 ? `₱${appliedShipping.toFixed(2)}` : '— Select zone'}
+                                            </span>
+                                        </div>
+                                    )}
 
                                     <div className="summary-divider"></div>
 
                                     <div className="summary-row total">
-                                        <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#333' }}>Total</span>
+                                        <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#333' }}>Grand Total</span>
                                         <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--primary-brown)' }}>
-                                            ₱{total.toFixed(2)}
+                                            ₱{grandTotal.toFixed(2)}
                                         </span>
                                     </div>
 
@@ -1452,6 +1536,12 @@ const CartPage = () => {
                                                 ) : orderResult.deliveryAddress}
                                             </span>
                                         </div>
+                                        {orderResult.shippingFee > 0 && (
+                                            <div className="receipt-row">
+                                                <span className="text-muted">🛵 Shipping Fee</span>
+                                                <span className="text-dark fw-semibold">₱{orderResult.shippingFee.toFixed(2)} {orderResult.deliveryZone && <span style={{fontSize:'0.78rem',color:'#aaa'}}>{orderResult.deliveryZone.split(' — ')[0]}</span>}</span>
+                                            </div>
+                                        )}
                                         <div className="receipt-row">
                                             <span className="text-muted">Payment Method</span>
                                             <span className="text-dark fw-semibold">
