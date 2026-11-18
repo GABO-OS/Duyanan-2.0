@@ -600,14 +600,14 @@ const CartPage = () => {
                 return res.json();
             })
             .then(data => {
-                const eligible = (data.address || '').toLowerCase().includes('padre burgos');
-                setIsEligibleForDelivery(eligible);
-                setFulfillmentMethod(eligible ? 'DELIVERY' : 'PICKUP');
+                const userAddress = reservationId ? `Dine-In (Pre-Order for Reservation #${reservationId})` : (data.address || '');
+                setIsEligibleForDelivery(true);
+                setFulfillmentMethod(reservationId ? 'PICKUP' : 'DELIVERY');
                 setCheckoutForm(prev => ({
                     ...prev,
                     recipientName: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
                     contactNumber: data.phone || '',
-                    deliveryAddress: reservationId ? `Dine-In (Pre-Order for Reservation #${reservationId})` : (data.address || '')
+                    deliveryAddress: userAddress
                 }));
             })
             .catch(err => {
@@ -1113,12 +1113,12 @@ const CartPage = () => {
                                                 <div className="fulfillment-options">
                                                     <div
                                                         id="fulfillment-delivery"
-                                                        className={`fulfillment-option-card ${fulfillmentMethod === 'DELIVERY' ? 'selected' : ''} ${!isEligibleForDelivery ? 'disabled' : ''}`}
-                                                        onClick={() => isEligibleForDelivery && setFulfillmentMethod('DELIVERY')}
+                                                        className={`fulfillment-option-card ${fulfillmentMethod === 'DELIVERY' ? 'selected' : ''}`}
+                                                        onClick={() => setFulfillmentMethod('DELIVERY')}
                                                     >
                                                         <i className="bi bi-truck"></i>
                                                         <span className="fc-title">Delivery</span>
-                                                        <span className="fc-sub">To your door</span>
+                                                        <span className="fc-sub">Around Padre Burgos</span>
                                                     </div>
                                                     <div
                                                         id="fulfillment-pickup"
@@ -1127,19 +1127,19 @@ const CartPage = () => {
                                                     >
                                                         <i className="bi bi-bag-check"></i>
                                                         <span className="fc-title">Pick-Up</span>
-                                                        <span className="fc-sub">At the restaurant</span>
+                                                        <span className="fc-sub">At Duyanan Restaurant</span>
                                                     </div>
                                                 </div>
 
-                                                {isEligibleForDelivery ? (
+                                                {fulfillmentMethod === 'DELIVERY' ? (
                                                     <div className="delivery-area-notice eligible">
-                                                        <i className="bi bi-check-circle-fill" style={{ flexShrink: 0, marginTop: 1 }}></i>
-                                                        <span>Your address is within our delivery area in <strong>Padre Burgos, Quezon Province</strong>. Delivery is available!</span>
+                                                        <i className="bi bi-geo-alt-fill" style={{ flexShrink: 0, marginTop: 1, color: '#1a7a3e' }}></i>
+                                                        <span>Delivery service is available across <strong>Padre Burgos, Quezon</strong>. Distance-based shipping fee is automatically calculated from your address and added to your GCash total.</span>
                                                     </div>
                                                 ) : (
-                                                    <div className="delivery-area-notice ineligible">
-                                                        <i className="bi bi-info-circle-fill" style={{ flexShrink: 0, marginTop: 1 }}></i>
-                                                        <span>Delivery is only available within <strong>Padre Burgos, Quezon Province</strong>. Your registered address is outside the delivery area — your order is set to <strong>Pick-Up</strong>.</span>
+                                                    <div className="delivery-area-notice" style={{ background: '#fdfbf7', border: '1.5px solid #e8ddd4', color: 'var(--primary-brown)' }}>
+                                                        <i className="bi bi-info-circle-fill" style={{ flexShrink: 0, marginTop: 1, color: 'var(--accent-orange)' }}></i>
+                                                        <span>Pick-Up at Duyanan Restaurant (Sitio Hacienda, Brgy. Danlagan). No shipping fee applied.</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -1255,18 +1255,41 @@ const CartPage = () => {
                                                             </button>
                                                         </div>
                                                     </div>
+                                                    {/* Explicit GCash Total Breakdown with Shipping Fee */}
                                                     <div className="col-12 mt-2 pt-2 border-top">
-                                                        <div className="d-flex justify-content-between align-items-center">
+                                                        <div className="d-flex justify-content-between align-items-center mb-1" style={{ fontSize: '0.86rem' }}>
+                                                            <span className="text-muted">Food Subtotal:</span>
+                                                            <span className="text-dark fw-semibold">₱{subtotal.toFixed(2)}</span>
+                                                        </div>
+                                                        {isDeliveryOrder ? (
+                                                            <div className="d-flex justify-content-between align-items-center mb-1" style={{ fontSize: '0.86rem' }}>
+                                                                <span className="text-muted">
+                                                                    🛵 Delivery Fee {deliveryFeeInfo.barangay && <span className="small text-muted">({deliveryFeeInfo.barangay})</span>}:
+                                                                </span>
+                                                                <span className="fw-bold" style={{ color: '#27ae60' }}>+₱{appliedShipping.toFixed(2)}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="d-flex justify-content-between align-items-center mb-1" style={{ fontSize: '0.86rem' }}>
+                                                                <span className="text-muted">Fulfillment:</span>
+                                                                <span className="badge bg-light text-dark border">{reservationId ? 'Dine-In' : 'Pick-Up (Free)'}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="d-flex justify-content-between align-items-center mt-2 pt-2 border-top" style={{ background: '#eef6ff', margin: '0 -8px', padding: '10px 14px', borderRadius: '10px' }}>
                                                             <div>
-                                                                <span className="text-muted small me-2">Exact Amount to Pay:</span>
-                                                                <span className="fw-bold" style={{ color: 'var(--accent-orange)', fontSize: '1.05rem' }}>₱{grandTotal.toFixed(2)}</span>
+                                                                <div className="text-muted small" style={{ fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                                                                    Total to Pay via GCash (Food + Shipping)
+                                                                </div>
+                                                                <div className="fw-bold" style={{ color: '#007DFE', fontSize: '1.25rem' }}>
+                                                                    ₱{grandTotal.toFixed(2)}
+                                                                </div>
                                                             </div>
                                                             <button 
                                                                 type="button" 
-                                                                className="copy-pill border-0"
-                                                                onClick={() => handleCopyText(total.toFixed(2), 'Total Amount')}
+                                                                className="copy-pill border-0 d-flex align-items-center gap-1 shadow-sm"
+                                                                style={{ padding: '7px 14px', fontSize: '0.82rem', background: '#007DFE', color: '#fff', borderRadius: '8px' }}
+                                                                onClick={() => handleCopyText(grandTotal.toFixed(2), 'Total GCash Amount')}
                                                             >
-                                                                <i className="bi bi-clipboard me-1"></i> Copy Amount
+                                                                <i className="bi bi-clipboard"></i> Copy ₱{grandTotal.toFixed(2)}
                                                             </button>
                                                         </div>
                                                     </div>
@@ -1350,8 +1373,13 @@ const CartPage = () => {
                                                         Duyanan Restaurant
                                                     </div>
                                                 </div>
-                                                <div className="text-muted small mt-2" style={{ fontSize: '0.78rem' }}>
-                                                    Pay exact amount: <b className="text-dark">₱{grandTotal.toFixed(2)}</b>
+                                                <div className="text-muted small mt-2" style={{ fontSize: '0.82rem' }}>
+                                                    Pay exact grand total: <b style={{ color: '#007DFE' }}>₱{grandTotal.toFixed(2)}</b>
+                                                    {isDeliveryOrder && appliedShipping > 0 && (
+                                                        <span className="d-block text-muted mt-1" style={{ fontSize: '0.75rem' }}>
+                                                            (₱{subtotal.toFixed(2)} food + ₱{appliedShipping.toFixed(2)} delivery fee to {deliveryFeeInfo.barangay || 'Padre Burgos'})
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
 
