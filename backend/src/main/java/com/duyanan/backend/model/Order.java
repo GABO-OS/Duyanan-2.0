@@ -41,6 +41,18 @@ public class Order {
     @Column(name = "order_type")
     private String orderType = "DELIVERY"; // DINE_IN, DELIVERY, PICKUP
 
+    @Column(name = "payment_method")
+    private String paymentMethod = "COD"; // COD, GCASH
+
+    @Column(name = "payment_status")
+    private String paymentStatus = "UNPAID"; // UNPAID, PENDING_VERIFICATION, PAID, REJECTED
+
+    @Column(name = "payment_proof_image", length = 500)
+    private String paymentProofImage;
+
+    @Column(name = "payment_reference", length = 100)
+    private String paymentReference;
+
     private String notes;
 
     @Column(name = "cancellation_reason")

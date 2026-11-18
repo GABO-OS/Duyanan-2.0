@@ -66,6 +66,9 @@ const Profile = () => {
     const [feedbackComment, setFeedbackComment] = useState('');
     const [submittingFeedback, setSubmittingFeedback] = useState(false);
     
+    // Receipt viewing state
+    const [viewingOrderProof, setViewingOrderProof] = useState(null);
+
     // Profile Edit State
     const [isEditing, setIsEditing] = useState(false);
     const [profileData, setProfileData] = useState({
@@ -654,23 +657,64 @@ const Profile = () => {
                                 
                                 return (
                                     <div key={order.id} className="card border-0 bg-white" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.04)' }}>
-                                        <div className="card-header bg-transparent border-bottom-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <div className="text-muted small mb-0 d-flex align-items-center gap-2 flex-wrap">
-                                                    <span><i className="bi bi-calendar3 me-1"></i> {dateStr}</span>
-                                                    {(order.orderType === 'DINE_IN' || order.reservation) && (
-                                                        <span className="badge bg-warning text-dark border">
-                                                            🍽️ Dine-In Pre-Order {order.reservation?.id ? `(Res #${order.reservation.id})` : ''}
+                                        <div className="card-header bg-transparent border-bottom-0 pt-4 pb-0 px-4">
+                                            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                                <div>
+                                                    <div className="text-muted small mb-0 d-flex align-items-center gap-2 flex-wrap">
+                                                        <span><i className="bi bi-calendar3 me-1"></i> {dateStr}</span>
+                                                        {(order.orderType === 'DINE_IN' || order.reservation) && (
+                                                            <span className="badge bg-warning text-dark border">
+                                                                🍽️ Dine-In Pre-Order {order.reservation?.id ? `(Res #${order.reservation.id})` : ''}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="text-end">
+                                                    <h5 className="fw-bold mb-0" style={{ color: 'var(--text-dark)' }}>₱{order.totalAmount.toFixed(2)}</h5>
+                                                    <span className="badge rounded-pill" style={{ backgroundColor: `${statusInfo.color}20`, color: statusInfo.color }}>
+                                                        <i className={`bi ${statusInfo.icon} me-1`}></i>
+                                                        {statusInfo.text}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* ── Payment Info & Verification Pill ── */}
+                                            <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-2 pt-2 border-top">
+                                                <div className="d-flex align-items-center gap-2 flex-wrap">
+                                                    <span className="small text-muted fw-semibold">Payment:</span>
+                                                    <span className={`badge ${order.paymentMethod === 'GCASH' ? 'bg-primary' : 'bg-secondary'}`} style={{ fontSize: '0.74rem' }}>
+                                                        {order.paymentMethod === 'GCASH' ? 'GCash' : 'COD'}
+                                                    </span>
+                                                    {order.paymentStatus === 'PAID' ? (
+                                                        <span className="badge px-2.5 py-1" style={{ backgroundColor: '#eafaf1', color: '#1e8449', border: '1px solid #b7e4c7', borderRadius: '50px', fontWeight: 700, fontSize: '0.78rem' }}>
+                                                            <i className="bi bi-check-circle-fill me-1"></i>PAID
+                                                        </span>
+                                                    ) : order.paymentMethod === 'GCASH' ? (
+                                                        <span className="badge px-2.5 py-1" style={{ backgroundColor: '#fff8e6', color: '#b7791f', border: '1px solid #fde4c2', borderRadius: '50px', fontWeight: 700, fontSize: '0.78rem' }}>
+                                                            <i className="bi bi-hourglass-split me-1"></i>Awaiting Admin Verification
+                                                        </span>
+                                                    ) : (
+                                                        <span className="badge bg-light text-muted border px-2.5 py-1 rounded-pill" style={{ fontSize: '0.78rem' }}>
+                                                            Pay upon arrival
+                                                        </span>
+                                                    )}
+                                                    {order.paymentReference && (
+                                                        <span className="text-muted small" style={{ fontSize: '0.75rem' }}>
+                                                            Ref: <strong className="text-dark">{order.paymentReference}</strong>
                                                         </span>
                                                     )}
                                                 </div>
-                                            </div>
-                                            <div className="text-end">
-                                                <h5 className="fw-bold mb-0" style={{ color: 'var(--text-dark)' }}>₱{order.totalAmount.toFixed(2)}</h5>
-                                                <span className="badge rounded-pill" style={{ backgroundColor: `${statusInfo.color}20`, color: statusInfo.color }}>
-                                                    <i className={`bi ${statusInfo.icon} me-1`}></i>
-                                                    {statusInfo.text}
-                                                </span>
+
+                                                {order.paymentProofImage && (
+                                                    <button 
+                                                        type="button" 
+                                                        className="btn btn-sm btn-outline-primary py-1 px-2.5 d-inline-flex align-items-center gap-1 shadow-sm"
+                                                        style={{ borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600 }}
+                                                        onClick={() => setViewingOrderProof(order)}
+                                                    >
+                                                        <i className="bi bi-receipt"></i> View Uploaded Receipt
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="card-body px-4 py-3">
@@ -687,6 +731,38 @@ const Profile = () => {
                                                     </div>
                                                 </div>
                                             )}
+
+                                            {/* Payment Notification Alert Card */}
+                                            {order.paymentStatus === 'PAID' && (
+                                                <div className="mb-3 p-2.5 rounded-3 d-flex align-items-center gap-2" style={{ backgroundColor: '#f0fff4', border: '1.5px solid #c6f6d5', color: '#22543d' }}>
+                                                    <i className="bi bi-shield-fill-check fs-5 text-success"></i>
+                                                    <div className="small">
+                                                        <span className="fw-bold">Payment Verified & Marked as PAID:</span> Your payment transfer has been verified by the restaurant admin. Thank you!
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {order.paymentMethod === 'GCASH' && order.paymentStatus !== 'PAID' && (
+                                                <div className="mb-3 p-2.5 rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style={{ backgroundColor: '#f0f7ff', border: '1.5px solid #cce5ff', color: '#004085' }}>
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <i className="bi bi-hourglass-split fs-5 text-primary"></i>
+                                                        <div className="small">
+                                                            <span className="fw-bold">Payment Proof Submitted:</span> The admin is reviewing your screenshot. Once verified, this order will appear as <b>PAID</b>.
+                                                        </div>
+                                                    </div>
+                                                    {order.paymentProofImage && (
+                                                        <button 
+                                                            type="button" 
+                                                            className="btn btn-sm btn-primary py-1 px-2.5 fw-bold"
+                                                            style={{ borderRadius: '6px', fontSize: '0.75rem' }}
+                                                            onClick={() => setViewingOrderProof(order)}
+                                                        >
+                                                            <i className="bi bi-eye me-1"></i> View Receipt
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             <div className="order-items-preview bg-light rounded-3 p-3 mt-3">
                                                 {order.items?.map((item, idx) => (
                                                     <div key={idx} className="d-flex justify-content-between mb-2 small">
@@ -1731,6 +1807,77 @@ const Profile = () => {
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Receipt Screenshot Viewer Modal ── */}
+            {viewingOrderProof && (
+                <div 
+                    className="modal show d-block" 
+                    tabIndex="-1" 
+                    style={{ backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 1055, backdropFilter: 'blur(4px)' }}
+                    onClick={() => setViewingOrderProof(null)}
+                >
+                    <div className="modal-dialog modal-dialog-centered modal-md" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', overflow: 'hidden' }}>
+                            <div className="modal-header border-bottom py-3 px-4 d-flex justify-content-between align-items-center" style={{ backgroundColor: '#007DFE', color: '#fff' }}>
+                                <h6 className="modal-title fw-bold mb-0 d-flex align-items-center gap-2">
+                                    <i className="bi bi-receipt"></i> Your GCash Payment Receipt
+                                    <span className="badge bg-white text-primary ms-1">Order #{viewingOrderProof.id}</span>
+                                </h6>
+                                <button 
+                                    type="button" 
+                                    className="btn-close btn-close-white" 
+                                    onClick={() => setViewingOrderProof(null)}
+                                    aria-label="Close"
+                                />
+                            </div>
+                            <div className="modal-body p-3 text-center bg-light">
+                                <div className="mb-2 p-2 bg-white rounded border d-flex justify-content-between align-items-center text-start">
+                                    <div>
+                                        <span className="small text-muted d-block">Status</span>
+                                        {viewingOrderProof.paymentStatus === 'PAID' ? (
+                                            <span className="badge bg-success fw-bold"><i className="bi bi-check-circle-fill me-1"></i>VERIFIED & PAID</span>
+                                        ) : (
+                                            <span className="badge bg-warning text-dark fw-bold"><i className="bi bi-hourglass-split me-1"></i>PENDING ADMIN VERIFICATION</span>
+                                        )}
+                                    </div>
+                                    <div className="text-end">
+                                        <span className="small text-muted d-block">Amount</span>
+                                        <span className="fw-bold text-success">₱{viewingOrderProof.totalAmount?.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                                <div className="overflow-auto bg-dark rounded-3 p-2" style={{ maxHeight: '65vh' }}>
+                                    <img 
+                                        src={viewingOrderProof.paymentProofImage?.startsWith('/') ? `${API_URL}${viewingOrderProof.paymentProofImage}` : viewingOrderProof.paymentProofImage} 
+                                        alt="GCash Payment Receipt" 
+                                        className="img-fluid rounded"
+                                        style={{ maxHeight: '60vh', objectFit: 'contain' }}
+                                    />
+                                </div>
+                                {viewingOrderProof.paymentReference && (
+                                    <div className="mt-2 text-muted small">
+                                        Reference No: <span className="fw-bold text-dark">{viewingOrderProof.paymentReference}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer border-0 py-2.5 px-4 bg-white d-flex justify-content-between">
+                                <span className="small text-muted">
+                                    {viewingOrderProof.paymentStatus === 'PAID' 
+                                        ? 'Verified by Duyanan Admin' 
+                                        : 'Awaiting review by Duyanan Admin'}
+                                </span>
+                                <button 
+                                    type="button" 
+                                    className="btn btn-sm btn-secondary" 
+                                    style={{ borderRadius: '8px', padding: '6px 20px' }}
+                                    onClick={() => setViewingOrderProof(null)}
+                                >
+                                    Close
+                                </button>
                             </div>
                         </div>
                     </div>

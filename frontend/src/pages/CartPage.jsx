@@ -171,6 +171,84 @@ const styles = `
     .receipt-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(160,64,0,0.04); font-size: 0.88rem; }
     .receipt-row:last-child { border-bottom: none; }
     .receipt-total { border-top: 1.5px solid #e8dcd0; padding-top: 10px; margin-top: 10px; font-weight: 700; font-size: 1.05rem; }
+
+    /* GCash Payment Styles */
+    .gcash-card {
+        background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
+        border: 1.5px solid #b8daff;
+        border-radius: 16px;
+        padding: 20px;
+        margin-top: 16px;
+        box-shadow: 0 4px 18px rgba(0, 125, 254, 0.08);
+        animation: cartItemIn 0.35s ease-out both;
+    }
+    .gcash-badge {
+        background: #007dfe;
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.82rem;
+        padding: 5px 14px;
+        border-radius: 50px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 2px 8px rgba(0, 125, 254, 0.25);
+    }
+    .gcash-info-box {
+        background: #ffffff;
+        border: 1px solid #cce5ff;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 14px;
+    }
+    .gcash-qr-box {
+        background: #ffffff;
+        border: 2px dashed #99c9ff;
+        border-radius: 16px;
+        padding: 16px;
+        text-align: center;
+        margin-bottom: 18px;
+    }
+    .proof-upload-area {
+        border: 2px dashed #007dfe;
+        border-radius: 14px;
+        background: #ffffff;
+        padding: 22px 16px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    .proof-upload-area:hover {
+        background: #f4f9ff;
+        border-color: #0056b3;
+        transform: translateY(-1px);
+    }
+    .proof-preview-banner {
+        background: #ffffff;
+        border: 1.5px solid #28a745;
+        border-radius: 14px;
+        padding: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        box-shadow: 0 4px 14px rgba(40, 167, 69, 0.1);
+    }
+    .copy-pill {
+        cursor: pointer;
+        background: #e7f3ff;
+        border: 1px solid #b8daff;
+        color: #0062cc;
+        border-radius: 8px;
+        padding: 3px 10px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        transition: all 0.2s;
+    }
+    .copy-pill:hover {
+        background: #007dfe;
+        color: #fff;
+    }
 `;
 
 /* ─── Format Group Meal JSON ─── */
@@ -222,6 +300,64 @@ const CartPage = () => {
     const [loadingProfile, setLoadingProfile] = useState(false);
     const [fulfillmentMethod, setFulfillmentMethod] = useState('DELIVERY'); // 'DELIVERY' or 'PICKUP'
     const [isEligibleForDelivery, setIsEligibleForDelivery] = useState(false);
+
+    // ── GCash Payment & Receipt Proof State ──
+    const [paymentProofFile, setPaymentProofFile] = useState(null);
+    const [paymentProofPreview, setPaymentProofPreview] = useState('');
+    const [paymentProofReference, setPaymentProofReference] = useState('');
+    const [viewingReceipt, setViewingReceipt] = useState(null);
+
+    const handleReceiptFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid File',
+                text: 'Please select an image file (PNG, JPG, JPEG, WEBP) for your GCash receipt screenshot.',
+                confirmButtonColor: '#007DFE'
+            });
+            return;
+        }
+
+        // Limit size to 10MB
+        if (file.size > 10 * 1024 * 1024) {
+            Swal.fire({
+                icon: 'error',
+                title: 'File Too Large',
+                text: 'The selected image is too large. Please select a file smaller than 10MB.',
+                confirmButtonColor: '#007DFE'
+            });
+            return;
+        }
+
+        setPaymentProofFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setPaymentProofPreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemoveReceipt = () => {
+        setPaymentProofFile(null);
+        setPaymentProofPreview('');
+    };
+
+    const handleCopyText = (text, label) => {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text);
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `${label} copied!`,
+                showConfirmButton: false,
+                timer: 1800
+            });
+        }
+    };
 
     // ── Item selection state (checkboxes) ──
     const [selectedItems, setSelectedItems] = useState(() => {
@@ -418,6 +554,18 @@ const CartPage = () => {
             return;
         }
 
+        // Validate GCash Receipt upload
+        if (checkoutForm.paymentMethod === 'GCASH' && !paymentProofFile) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'GCash Receipt Required',
+                html: `<div style="font-size:0.95rem; line-height:1.5;">Please transfer <b>₱${total.toFixed(2)}</b> to the GCash details provided and upload your receipt screenshot before placing the order.</div>`,
+                confirmButtonColor: '#007DFE',
+                confirmButtonText: '<i class="bi bi-upload me-1"></i> Upload Receipt Now'
+            });
+            return;
+        }
+
         const result = await Swal.fire({
             title: 'Place Order?',
             html: `<div style="font-size:0.95rem">Confirm order for <b>${itemCount} item${itemCount !== 1 ? 's' : ''}</b> totaling <b style="color:#a04000">₱${total.toFixed(2)}</b> via <b>${checkoutForm.paymentMethod === 'COD' ? 'Cash on Delivery' : 'G-Cash'}</b>?</div>`,
@@ -431,6 +579,27 @@ const CartPage = () => {
         if (result.isConfirmed) {
             setIsCheckingOut(true);
             try {
+                // 1. Upload payment proof if GCash was selected
+                let uploadedProofUrl = null;
+                if (checkoutForm.paymentMethod === 'GCASH' && paymentProofFile) {
+                    const formData = new FormData();
+                    formData.append('image', paymentProofFile);
+                    const uploadRes = await fetch(`${API_URL}/api/orders/upload-proof`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${user.token}`
+                        },
+                        body: formData
+                    });
+
+                    if (!uploadRes.ok) {
+                        const errData = await uploadRes.json().catch(() => ({}));
+                        throw new Error(errData.error || 'Failed to upload receipt screenshot. Please try again.');
+                    }
+                    const uploadJson = await uploadRes.json();
+                    uploadedProofUrl = uploadJson.imageUrl;
+                }
+
                 const isDineIn = !!reservationId;
                 const isPickup = !isDineIn && fulfillmentMethod === 'PICKUP';
                 const addressOrType = isDineIn
@@ -455,6 +624,9 @@ const CartPage = () => {
                     body: JSON.stringify({
                         reservationId: reservationId ? parseInt(reservationId, 10) : null,
                         orderType: isDineIn ? "DINE_IN" : fulfillmentMethod,
+                        paymentMethod: checkoutForm.paymentMethod,
+                        paymentProofImage: uploadedProofUrl,
+                        paymentReference: paymentProofReference ? paymentProofReference.trim() : null,
                         notes: combinedNotes,
                         items: selectedCart.map(item => ({
                             productId: item.id,
@@ -474,6 +646,9 @@ const CartPage = () => {
                         recipientName: checkoutForm.recipientName,
                         deliveryAddress: addressOrType,
                         paymentMethod: checkoutForm.paymentMethod,
+                        paymentStatus: checkoutForm.paymentMethod === 'GCASH' ? 'PENDING_VERIFICATION' : 'UNPAID',
+                        paymentProofImage: uploadedProofUrl,
+                        paymentReference: paymentProofReference ? paymentProofReference.trim() : null,
                         isDineIn: isDineIn,
                         isPickup: isPickup,
                         reservationId: reservationId
@@ -481,14 +656,16 @@ const CartPage = () => {
                     
                     Swal.fire({
                         icon: 'success',
-                        title: isDineIn ? 'Pre-Order Placed! 🍽️' : 'Order Placed! 🎉',
-                        text: isDineIn
-                            ? 'Your pre-ordered food is confirmed and will be prepared for your reserved table!'
-                            : isPickup
-                                ? 'Your order is confirmed! Please pick it up at Duyanan Restaurant when ready.'
-                                : 'Your delicious meal is being prepared and will be delivered shortly.',
+                        title: checkoutForm.paymentMethod === 'GCASH' ? 'Proof Uploaded & Order Placed! 💳' : (isDineIn ? 'Pre-Order Placed! 🍽️' : 'Order Placed! 🎉'),
+                        text: checkoutForm.paymentMethod === 'GCASH'
+                            ? 'Your GCash receipt has been uploaded and will be verified by the admin shortly!'
+                            : (isDineIn
+                                ? 'Your pre-ordered food is confirmed and will be prepared for your reserved table!'
+                                : isPickup
+                                    ? 'Your order is confirmed! Please pick it up at Duyanan Restaurant when ready.'
+                                    : 'Your delicious meal is being prepared and will be delivered shortly.'),
                         confirmButtonColor: '#A04000',
-                        timer: 3000
+                        timer: 3500
                     });
 
                     // Only remove the selected/checked-out items from cart, keep the rest
@@ -898,11 +1075,224 @@ const CartPage = () => {
                                                 className={`payment-option-card ${checkoutForm.paymentMethod === 'GCASH' ? 'selected' : ''}`}
                                                 onClick={() => handleSelectPayment('GCASH')}
                                             >
-                                                <i className="bi bi-phone"></i>
+                                                <i className="bi bi-phone" style={{ color: '#007DFE' }}></i>
                                                 <span>G-Cash</span>
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* ── GCash Payment Instructions & Proof Upload ── */}
+                                    {checkoutForm.paymentMethod === 'GCASH' && (
+                                        <div className="gcash-card mb-4">
+                                            <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                                                <div className="gcash-badge">
+                                                    <i className="bi bi-phone-fill"></i> GCash Manual Transfer
+                                                </div>
+                                                <span className="badge bg-white text-primary border" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                                                    Verified Merchant
+                                                </span>
+                                            </div>
+
+                                            <div className="gcash-info-box">
+                                                <div className="row g-2 align-items-center">
+                                                    <div className="col-12 col-sm-6">
+                                                        <div className="text-muted small">Account Name</div>
+                                                        <div className="fw-bold text-dark" style={{ fontSize: '0.92rem' }}>DUYANAN RESTAURANT</div>
+                                                    </div>
+                                                    <div className="col-12 col-sm-6">
+                                                        <div className="d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div className="text-muted small">GCash Number</div>
+                                                                <div className="fw-bold text-primary" style={{ fontSize: '0.95rem', letterSpacing: '0.5px' }}>0917-824-3921</div>
+                                                            </div>
+                                                            <button 
+                                                                type="button" 
+                                                                className="copy-pill border-0"
+                                                                onClick={() => handleCopyText('09178243921', 'GCash Number')}
+                                                            >
+                                                                <i className="bi bi-clipboard me-1"></i> Copy
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="col-12 mt-2 pt-2 border-top">
+                                                        <div className="d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <span className="text-muted small me-2">Exact Amount to Pay:</span>
+                                                                <span className="fw-bold" style={{ color: 'var(--accent-orange)', fontSize: '1.05rem' }}>₱{total.toFixed(2)}</span>
+                                                            </div>
+                                                            <button 
+                                                                type="button" 
+                                                                className="copy-pill border-0"
+                                                                onClick={() => handleCopyText(total.toFixed(2), 'Total Amount')}
+                                                            >
+                                                                <i className="bi bi-clipboard me-1"></i> Copy Amount
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* QR Code Section */}
+                                            <div className="gcash-qr-box">
+                                                <div className="d-flex align-items-center justify-content-center gap-2 mb-2">
+                                                    <i className="bi bi-qr-code-scan text-primary" style={{ fontSize: '1.2rem' }}></i>
+                                                    <span className="fw-bold text-dark" style={{ fontSize: '0.88rem' }}>Scan QR Code with your GCash App</span>
+                                                </div>
+                                                
+                                                {/* Stylized QR Card */}
+                                                <div className="d-inline-block bg-white p-3 rounded-3 shadow-sm border position-relative" style={{ maxWidth: '200px' }}>
+                                                    <svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        {/* QR Background & Corner Positioning Squares */}
+                                                        <rect width="160" height="160" fill="white"/>
+                                                        {/* Top-Left Finder */}
+                                                        <rect x="10" y="10" width="40" height="40" rx="6" fill="#007DFE"/>
+                                                        <rect x="16" y="16" width="28" height="28" rx="3" fill="white"/>
+                                                        <rect x="22" y="22" width="16" height="16" rx="2" fill="#007DFE"/>
+                                                        {/* Top-Right Finder */}
+                                                        <rect x="110" y="10" width="40" height="40" rx="6" fill="#007DFE"/>
+                                                        <rect x="116" y="16" width="28" height="28" rx="3" fill="white"/>
+                                                        <rect x="122" y="22" width="16" height="16" rx="2" fill="#007DFE"/>
+                                                        {/* Bottom-Left Finder */}
+                                                        <rect x="10" y="110" width="40" height="40" rx="6" fill="#007DFE"/>
+                                                        <rect x="16" y="116" width="28" height="28" rx="3" fill="white"/>
+                                                        <rect x="22" y="122" width="16" height="16" rx="2" fill="#007DFE"/>
+                                                        {/* Simulated Data Pattern Modules */}
+                                                        <rect x="60" y="15" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="75" y="15" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="90" y="15" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="60" y="30" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="80" y="30" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="60" y="45" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="75" y="45" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="90" y="45" width="8" height="8" fill="#1a1a1a"/>
+                                                        
+                                                        <rect x="15" y="60" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="30" y="60" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="45" y="60" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="60" y="60" width="12" height="12" fill="#007DFE"/>
+                                                        <rect x="80" y="60" width="12" height="12" fill="#007DFE"/>
+                                                        <rect x="105" y="60" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="120" y="60" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="135" y="60" width="8" height="8" fill="#1a1a1a"/>
+
+                                                        {/* Center GCash Shield Icon */}
+                                                        <circle cx="80" cy="80" r="16" fill="#007DFE"/>
+                                                        <path d="M74 80L78 84L86 76" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+
+                                                        <rect x="15" y="90" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="30" y="90" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="45" y="90" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="60" y="90" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="90" y="90" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="105" y="90" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="125" y="90" width="8" height="8" fill="#1a1a1a"/>
+
+                                                        <rect x="60" y="110" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="75" y="110" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="95" y="110" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="115" y="110" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="135" y="110" width="8" height="8" fill="#1a1a1a"/>
+
+                                                        <rect x="60" y="125" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="80" y="125" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="100" y="125" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="120" y="125" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="140" y="125" width="8" height="8" fill="#1a1a1a"/>
+
+                                                        <rect x="60" y="140" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="75" y="140" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="90" y="140" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="110" y="140" width="8" height="8" fill="#1a1a1a"/>
+                                                        <rect x="130" y="140" width="8" height="8" fill="#1a1a1a"/>
+                                                    </svg>
+                                                    <div className="mt-1 small fw-bold text-primary" style={{ fontSize: '0.72rem' }}>
+                                                        Duyanan Restaurant
+                                                    </div>
+                                                </div>
+                                                <div className="text-muted small mt-2" style={{ fontSize: '0.78rem' }}>
+                                                    Pay exact amount: <b className="text-dark">₱{total.toFixed(2)}</b>
+                                                </div>
+                                            </div>
+
+                                            {/* Proof of Payment Upload */}
+                                            <div className="mb-3">
+                                                <label className="fw-bold small text-dark d-flex align-items-center gap-1 mb-2">
+                                                    <span>Upload GCash Receipt Screenshot</span>
+                                                    <span className="text-danger">*</span>
+                                                    <span className="badge bg-primary text-white ms-auto" style={{ fontSize: '0.7rem' }}>Required</span>
+                                                </label>
+
+                                                {!paymentProofPreview ? (
+                                                    <label className="proof-upload-area w-100 mb-0 d-block">
+                                                        <input 
+                                                            type="file" 
+                                                            accept="image/*" 
+                                                            onChange={handleReceiptFileChange}
+                                                            style={{ display: 'none' }} 
+                                                        />
+                                                        <i className="bi bi-cloud-arrow-up-fill text-primary" style={{ fontSize: '2.4rem' }}></i>
+                                                        <div className="fw-bold text-dark mt-1" style={{ fontSize: '0.9rem' }}>
+                                                            Click or tap to upload GCash receipt screenshot
+                                                        </div>
+                                                        <div className="text-muted small mt-1" style={{ fontSize: '0.78rem' }}>
+                                                            Supports PNG, JPG, JPEG, WEBP (Max: 10MB)
+                                                        </div>
+                                                    </label>
+                                                ) : (
+                                                    <div className="proof-preview-banner">
+                                                        <div className="d-flex align-items-center gap-3 overflow-hidden">
+                                                            <img 
+                                                                src={paymentProofPreview} 
+                                                                alt="Receipt Preview" 
+                                                                style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #d4edda', flexShrink: 0, cursor: 'pointer' }}
+                                                                onClick={() => setViewingReceipt(paymentProofPreview)}
+                                                                title="Click to zoom in"
+                                                            />
+                                                            <div className="overflow-hidden">
+                                                                <div className="d-flex align-items-center gap-1 text-success fw-bold small">
+                                                                    <i className="bi bi-check-circle-fill"></i> Receipt Attached
+                                                                </div>
+                                                                <div className="text-truncate text-muted small" style={{ fontSize: '0.78rem' }}>
+                                                                    {paymentProofFile?.name || 'receipt-screenshot.png'}
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-link p-0 text-primary small text-decoration-none fw-bold"
+                                                                    style={{ fontSize: '0.75rem' }}
+                                                                    onClick={() => setViewingReceipt(paymentProofPreview)}
+                                                                >
+                                                                    <i className="bi bi-zoom-in me-1"></i> Preview Full Image
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <button 
+                                                            type="button" 
+                                                            className="btn btn-sm btn-outline-danger"
+                                                            style={{ borderRadius: '8px', padding: '6px 12px', fontSize: '0.78rem', flexShrink: 0 }}
+                                                            onClick={handleRemoveReceipt}
+                                                        >
+                                                            <i className="bi bi-trash3 me-1"></i> Change
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Reference Number Field */}
+                                            <div>
+                                                <label className="fw-bold small text-muted mb-1" style={{ fontSize: '0.78rem' }}>
+                                                    GCash Reference No. (Optional)
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    className="form-control"
+                                                    value={paymentProofReference}
+                                                    onChange={(e) => setPaymentProofReference(e.target.value)}
+                                                    placeholder="e.g. 1002 9384 7581 (from your GCash receipt)"
+                                                    style={{ borderRadius: '10px', fontSize: '0.85rem', padding: '10px 14px' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="form-group-custom">
                                         <label>Order Notes / Special Instructions (Optional)</label>
@@ -1067,11 +1457,51 @@ const CartPage = () => {
                                             <span className="text-dark fw-semibold">
                                                 {orderResult.paymentMethod === 'COD' 
                                                     ? (orderResult.isDineIn ? 'Pay at Restaurant' : 'Cash on Delivery (COD)') 
-                                                    : 'G-Cash'}
+                                                    : 'G-Cash (Manual Transfer)'}
                                             </span>
                                         </div>
+                                        <div className="receipt-row">
+                                            <span className="text-muted">Payment Status</span>
+                                            <span>
+                                                {orderResult.paymentMethod === 'GCASH' ? (
+                                                    <span className="badge px-2.5 py-1.5" style={{ backgroundColor: '#fff9e6', color: '#b7791f', border: '1px solid #ffeeba', borderRadius: '50px', fontSize: '0.78rem', fontWeight: 700 }}>
+                                                        <i className="bi bi-hourglass-split me-1"></i> Awaiting Admin Verification
+                                                    </span>
+                                                ) : (
+                                                    <span className="badge bg-light text-dark border" style={{ borderRadius: '50px', fontSize: '0.78rem' }}>
+                                                        Pay upon arrival
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </div>
+                                        {orderResult.paymentReference && (
+                                            <div className="receipt-row">
+                                                <span className="text-muted">GCash Ref No.</span>
+                                                <span className="text-dark fw-semibold small">{orderResult.paymentReference}</span>
+                                            </div>
+                                        )}
+                                        {orderResult.paymentProofImage && (
+                                            <div className="receipt-row align-items-center">
+                                                <span className="text-muted">Payment Proof</span>
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <img 
+                                                        src={orderResult.paymentProofImage.startsWith('/') ? `${API_URL}${orderResult.paymentProofImage}` : orderResult.paymentProofImage} 
+                                                        alt="Receipt Proof" 
+                                                        style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                                        onClick={() => setViewingReceipt(orderResult.paymentProofImage.startsWith('/') ? `${API_URL}${orderResult.paymentProofImage}` : orderResult.paymentProofImage)}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-sm btn-link p-0 text-primary fw-bold text-decoration-none small"
+                                                        onClick={() => setViewingReceipt(orderResult.paymentProofImage.startsWith('/') ? `${API_URL}${orderResult.paymentProofImage}` : orderResult.paymentProofImage)}
+                                                    >
+                                                        <i className="bi bi-eye me-1"></i> View Receipt
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="receipt-row receipt-total">
-                                            <span>Total Amount Paid</span>
+                                            <span>Total Amount</span>
                                             <span style={{ color: 'var(--accent-orange)' }}>₱{orderResult.total.toFixed(2)}</span>
                                         </div>
                                     </div>
@@ -1098,6 +1528,53 @@ const CartPage = () => {
                     )}
                 </div>
             </div>
+
+            {/* ── Receipt Screenshot Zoom Modal ── */}
+            {viewingReceipt && (
+                <div 
+                    className="modal show d-block" 
+                    tabIndex="-1" 
+                    style={{ backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 1055, backdropFilter: 'blur(4px)' }}
+                    onClick={() => setViewingReceipt(null)}
+                >
+                    <div className="modal-dialog modal-dialog-centered modal-md" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', overflow: 'hidden' }}>
+                            <div className="modal-header border-bottom py-3 px-4 d-flex justify-content-between align-items-center" style={{ backgroundColor: '#007DFE', color: '#fff' }}>
+                                <h6 className="modal-title fw-bold mb-0 d-flex align-items-center gap-2">
+                                    <i className="bi bi-receipt"></i> GCash Receipt Screenshot
+                                </h6>
+                                <button 
+                                    type="button" 
+                                    className="btn-close btn-close-white" 
+                                    onClick={() => setViewingReceipt(null)}
+                                    aria-label="Close"
+                                />
+                            </div>
+                            <div className="modal-body p-3 text-center bg-light">
+                                <img 
+                                    src={viewingReceipt} 
+                                    alt="GCash Payment Receipt" 
+                                    className="img-fluid rounded-3 shadow-sm"
+                                    style={{ maxHeight: '70vh', objectFit: 'contain' }}
+                                />
+                            </div>
+                            <div className="modal-footer border-0 py-2.5 px-4 bg-white d-flex justify-content-between">
+                                <span className="small text-muted">
+                                    <i className="bi bi-shield-check text-success me-1"></i> Payment Proof Submitted
+                                </span>
+                                <button 
+                                    type="button" 
+                                    className="btn btn-sm btn-secondary" 
+                                    style={{ borderRadius: '8px', padding: '6px 18px' }}
+                                    onClick={() => setViewingReceipt(null)}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };

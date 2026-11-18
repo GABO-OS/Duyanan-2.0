@@ -185,6 +185,27 @@ public class AdminController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @PutMapping("/orders/{id}/payment-status")
+    public ResponseEntity<?> updateOrderPaymentStatus(@PathVariable @NonNull Long id, @RequestBody Map<String, String> body) {
+        String paymentStatus = body.get("paymentStatus");
+        if (paymentStatus == null || paymentStatus.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Payment status is required."));
+        }
+        String cleanStatus = paymentStatus.trim().toUpperCase();
+
+        return orderRepository.findById(id).map(found -> {
+            Order order = requireEntity(found);
+            order.setPaymentStatus(cleanStatus);
+            Order saved = orderRepository.save(order);
+            notificationService.notifyPaymentStatus(saved);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Payment status updated to " + cleanStatus,
+                    "orderId", saved.getId(),
+                    "paymentStatus", saved.getPaymentStatus()
+            ));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     // ── Reservations (Admin) ──────────────────────────────
     @GetMapping("/reservations")
     public List<Reservation> getAllReservations() {

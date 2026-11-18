@@ -22,6 +22,26 @@ let reservations = [
     }
 ];
 
+let orders = [
+    {
+        id: 101,
+        user: { id: 1, email: 'johndoe@test.com', firstName: 'John', lastName: 'Doe', phone: '09171234567', address: 'Padre Burgos, Quezon' },
+        items: [
+            { id: 1, quantity: 2, subtotal: 218.00, product: { id: 101, name: 'Lechon Kawali Rice' }, variant: 'Solo' },
+            { id: 2, quantity: 1, subtotal: 65.00, product: { id: 501, name: 'Iced Tea' }, variant: 'Glass' }
+        ],
+        totalAmount: 283.00,
+        status: 'PENDING',
+        orderDate: new Date().toISOString(),
+        orderType: 'DELIVERY',
+        paymentMethod: 'GCASH',
+        paymentStatus: 'PENDING_VERIFICATION',
+        paymentProofImage: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600',
+        paymentReference: '1002938475819',
+        notes: 'ORDER TYPE: DELIVERY | Recipient: John Doe | Contact: 09171234567 | Address: Padre Burgos | Payment: G-Cash'
+    }
+];
+
 let products = [
     { id: 901, name: 'Classic Celebration Package', priceSolo: 12500.00, description: 'Perfect for small gatherings. Serves 20-25 pax. Includes 2 Main Dishes, 1 Side, and 1 Drink option.', category: 'Event Packages', imageUrl: 'https://images.unsplash.com/photo-1555244162-803834f70033?w=500' },
     { id: 902, name: 'Grand Fiesta Package', priceSolo: 24900.00, description: 'Ideal for major milestones and corporate events. Serves 40-50 pax. Includes 3 Main Dishes, 2 Sides, and 2 Drink options.', category: 'Event Packages', imageUrl: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=500' },
@@ -340,8 +360,57 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/admin/products' && method === 'GET') {
         return sendJSON(res, 200, products);
     }
+    if (pathname === '/api/orders/upload-proof' && method === 'POST') {
+        return sendJSON(res, 200, { imageUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600' });
+    }
+    if (pathname === '/api/orders' && method === 'POST') {
+        const body = await getRequestBody(req);
+        const newOrder = {
+            id: orders.length > 0 ? Math.max(...orders.map(o => o.id)) + 1 : 1,
+            user: users[0],
+            items: (body.items || []).map((it, idx) => ({
+                id: idx + 1,
+                quantity: it.quantity,
+                subtotal: (it.price || 100) * it.quantity,
+                product: products.find(p => p.id === it.productId) || { name: 'Delicious Dish' },
+                variant: it.variant
+            })),
+            totalAmount: (body.items || []).reduce((sum, it) => sum + (it.price || 100) * it.quantity, 0),
+            status: 'PENDING',
+            orderDate: new Date().toISOString(),
+            orderType: body.orderType || 'DELIVERY',
+            paymentMethod: body.paymentMethod || 'COD',
+            paymentStatus: body.paymentMethod === 'GCASH' ? 'PENDING_VERIFICATION' : 'UNPAID',
+            paymentProofImage: body.paymentProofImage || null,
+            paymentReference: body.paymentReference || null,
+            notes: body.notes || ''
+        };
+        orders.unshift(newOrder);
+        return sendJSON(res, 200, { message: 'Order placed successfully!', orderId: newOrder.id, ...newOrder });
+    }
+    if (pathname === '/api/orders/my-orders' && method === 'GET') {
+        return sendJSON(res, 200, orders);
+    }
+    const adminOrderPayMatch = pathname.match(/^\/api\/admin\/orders\/(\d+)\/payment-status$/);
+    if (adminOrderPayMatch && method === 'PUT') {
+        const id = parseInt(adminOrderPayMatch[1], 10);
+        const body = await getRequestBody(req);
+        const o = orders.find(ord => ord.id === id);
+        if (!o) return sendJSON(res, 404, { error: 'Order not found' });
+        o.paymentStatus = (body.paymentStatus || 'PAID').toUpperCase();
+        return sendJSON(res, 200, { message: 'Payment status updated.', order: o });
+    }
+    const adminOrderStatusMatch = pathname.match(/^\/api\/admin\/orders\/(\d+)\/status$/);
+    if (adminOrderStatusMatch && method === 'PUT') {
+        const id = parseInt(adminOrderStatusMatch[1], 10);
+        const body = await getRequestBody(req);
+        const o = orders.find(ord => ord.id === id);
+        if (!o) return sendJSON(res, 404, { error: 'Order not found' });
+        o.status = body.status || o.status;
+        return sendJSON(res, 200, { message: 'Order status updated.', order: o });
+    }
     if (pathname === '/api/admin/orders' && method === 'GET') {
-        return sendJSON(res, 200, []);
+        return sendJSON(res, 200, orders);
     }
     if (pathname === '/api/admin/events' && method === 'GET') {
         return sendJSON(res, 200, events);

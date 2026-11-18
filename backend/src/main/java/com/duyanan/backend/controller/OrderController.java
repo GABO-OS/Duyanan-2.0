@@ -7,10 +7,17 @@ import com.duyanan.backend.util.*;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -89,6 +96,22 @@ public class OrderController {
                 order.setOrderType(body.get("orderType").toString());
             } else if (order.getReservation() != null) {
                 order.setOrderType("DINE_IN");
+            }
+
+            // Payment information
+            String paymentMethod = body.get("paymentMethod") != null ? body.get("paymentMethod").toString().trim().toUpperCase() : "COD";
+            order.setPaymentMethod(paymentMethod);
+
+            if ("GCASH".equalsIgnoreCase(paymentMethod)) {
+                order.setPaymentStatus("PENDING_VERIFICATION");
+                if (body.get("paymentProofImage") != null && !body.get("paymentProofImage").toString().isBlank()) {
+                    order.setPaymentProofImage(body.get("paymentProofImage").toString().trim());
+                }
+                if (body.get("paymentReference") != null && !body.get("paymentReference").toString().isBlank()) {
+                    order.setPaymentReference(body.get("paymentReference").toString().trim());
+                }
+            } else {
+                order.setPaymentStatus("UNPAID");
             }
 
             // Parse items from request body
@@ -182,7 +205,9 @@ public class OrderController {
                     "message", "Order placed successfully!",
                     "orderId", saved.getId(),
                     "totalAmount", saved.getTotalAmount(),
-                    "status", saved.getStatus()
+                    "status", saved.getStatus(),
+                    "paymentMethod", saved.getPaymentMethod() != null ? saved.getPaymentMethod() : "COD",
+                    "paymentStatus", saved.getPaymentStatus() != null ? saved.getPaymentStatus() : "UNPAID"
             ));
 
         } catch (Exception e) {
@@ -357,5 +382,83 @@ public class OrderController {
 
         // Default fallback — return null so caller can try other fallbacks
         return null;
+    }
+
+    // ── Payment Proof Upload ─────────────────────────────────
+    private static final String PAYMENT_UPLOAD_DIR = "uploads/payments/";
+
+    @PostMapping("/upload-proof")
+    public ResponseEntity<?> uploadPaymentProof(@RequestParam("image") MultipartFile image) {
+        if (image == null || image.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Please provide a valid image file."));
+        }
+        try {
+            String imageUrl = savePaymentProofImage(image);
+            return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
+        } catch (IOException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to upload payment receipt: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/upload-proof")
+    public ResponseEntity<?> updateOrderPaymentProof(@RequestHeader("Authorization") String authHeader,
+                                                     @PathVariable Long id,
+                                                     @RequestParam("image") MultipartFile image,
+                                                     @RequestParam(value = "reference", required = false) String reference) {
+        try {
+            String token = authHeader.replace("Bearer ", "");
+            var claims = jwtUtil.validateToken(token);
+            String email = claims.getSubject();
+
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            Order order = orderRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Order not found"));
+
+            if (!order.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(403).body(Map.of("error", "Unauthorized access."));
+            }
+
+            if (image == null || image.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Please select an image file."));
+            }
+
+            String imageUrl = savePaymentProofImage(image);
+            order.setPaymentProofImage(imageUrl);
+            order.setPaymentMethod("GCASH");
+            order.setPaymentStatus("PENDING_VERIFICATION");
+            if (reference != null && !reference.isBlank()) {
+                order.setPaymentReference(reference.trim());
+            }
+
+            Order saved = orderRepository.save(order);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Payment proof uploaded successfully.",
+                    "imageUrl", imageUrl,
+                    "paymentStatus", saved.getPaymentStatus()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    private String savePaymentProofImage(MultipartFile image) throws IOException {
+        Path uploadPath = Paths.get(PAYMENT_UPLOAD_DIR);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        String originalFilename = image.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String filename = "gcash-" + UUID.randomUUID() + extension;
+
+        Path filePath = uploadPath.resolve(filename);
+        Files.copy(image.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        return "/uploads/payments/" + filename;
     }
 }

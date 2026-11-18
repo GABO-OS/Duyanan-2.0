@@ -76,4 +76,44 @@ public class NotificationService {
 
         emailService.sendOrderStatusEmailAsync(order);
     }
+
+    /**
+     * Creates an in-app notification when an admin updates the payment status
+     * of an order (e.g. marking GCash proof as PAID).
+     */
+    public void notifyPaymentStatus(Order order) {
+        if (order == null || order.getUser() == null) {
+            return;
+        }
+
+        String paymentStatus = order.getPaymentStatus() != null ? order.getPaymentStatus().trim().toUpperCase() : "UNPAID";
+        Long orderId = order.getId();
+
+        String title;
+        String message;
+
+        if ("PAID".equalsIgnoreCase(paymentStatus)) {
+            title = "Payment Verified for Order #" + orderId + " 💳✅";
+            message = "Your GCash payment for Order #" + orderId + " has been verified and marked as PAID by Duyanan Restaurant. Thank you!";
+        } else if ("REJECTED".equalsIgnoreCase(paymentStatus)) {
+            title = "Payment Issue on Order #" + orderId + " ⚠️";
+            message = "Your uploaded payment proof could not be verified by the admin. Please check your order details or contact support.";
+        } else {
+            return;
+        }
+
+        try {
+            Notification notification = new Notification();
+            notification.setUser(order.getUser());
+            notification.setOrderId(orderId);
+            notification.setTitle(title);
+            notification.setMessage(message);
+            notification.setOrderStatus(order.getStatus());
+            notification.setRead(false);
+            notification.setCreatedAt(LocalDateTime.now());
+            notificationRepository.save(notification);
+        } catch (Exception e) {
+            log.error("Failed to save payment in-app notification for order #{}: {}", orderId, e.getMessage());
+        }
+    }
 }

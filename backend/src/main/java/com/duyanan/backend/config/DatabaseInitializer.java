@@ -97,6 +97,12 @@ public class DatabaseInitializer implements CommandLineRunner {
             log.warn("Notice creating notifications table: {}", e.getMessage());
         }
 
+        // 5. Ensure order payment columns exist
+        safeAddColumn("orders", "payment_method", "VARCHAR(50) DEFAULT 'COD'");
+        safeAddColumn("orders", "payment_status", "VARCHAR(50) DEFAULT 'UNPAID'");
+        safeAddColumn("orders", "payment_proof_image", "VARCHAR(500)");
+        safeAddColumn("orders", "payment_reference", "VARCHAR(100)");
+
         log.info("Database schema consistency check completed successfully.");
     }
 

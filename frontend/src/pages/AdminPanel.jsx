@@ -79,6 +79,10 @@ const AdminPanel = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [hoveredPoint, setHoveredPoint] = useState(null);
 
+    // GCash Payment Verification state
+    const [viewingOrderProof, setViewingOrderProof] = useState(null);
+    const [orderPaymentFilter, setOrderPaymentFilter] = useState('ALL'); // 'ALL' | 'GCASH_PENDING' | 'PAID' | 'UNPAID'
+
     // Event form state
     const [showEventForm, setShowEventForm] = useState(false);
     const [editingEvent, setEditingEvent] = useState(null);
@@ -476,6 +480,64 @@ const AdminPanel = () => {
             }
         } catch (e) {
             Swal.fire('Error', 'Failed to update status.', 'error');
+        }
+    };
+
+    const handleUpdatePaymentStatus = async (orderId, newStatus) => {
+        const order = orders.find(o => o.id === orderId);
+        const isPaid = newStatus === 'PAID';
+
+        const result = await Swal.fire({
+            title: isPaid ? 'Verify & Mark as PAID?' : `Update Payment to ${newStatus}?`,
+            html: `
+                <div style="font-size:0.92rem; text-align: left; background:#f8f9fa; border:1px solid #e9ecef; padding:14px; border-radius:12px; margin-top:8px;">
+                    <div><b>Order ID:</b> #${orderId}</div>
+                    <div><b>Customer:</b> ${order?.user?.firstName || ''} ${order?.user?.lastName || ''}</div>
+                    <div><b>Total Amount:</b> <span style="color:#a04000; font-weight:700;">₱${order?.totalAmount?.toFixed(2) || '0.00'}</span></div>
+                    ${order?.paymentReference ? `<div><b>GCash Reference:</b> ${order.paymentReference}</div>` : ''}
+                </div>
+                <p style="margin-top:12px; font-size:0.88rem; color:#666;">
+                    ${isPaid 
+                        ? 'This verifies the customer\'s GCash receipt and marks the order as <b>PAID</b>. The customer will immediately see this updated on their account.' 
+                        : 'Change payment status for this order.'}
+                </p>
+            `,
+            icon: isPaid ? 'question' : 'info',
+            showCancelButton: true,
+            confirmButtonColor: isPaid ? '#27ae60' : 'var(--primary-brown)',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: isPaid ? '<i class="bi bi-check-circle-fill me-1"></i> Yes, Mark as PAID' : 'Update Status',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            const res = await fetch(`${API_URL}/api/admin/orders/${orderId}/payment-status`, {
+                method: 'PUT',
+                headers: authHeaders(),
+                body: JSON.stringify({ paymentStatus: newStatus })
+            });
+
+            if (res.ok) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: `Order #${orderId} marked as ${newStatus}!`,
+                    showConfirmButton: false,
+                    timer: 2500
+                });
+                if (viewingOrderProof && viewingOrderProof.id === orderId) {
+                    setViewingOrderProof(prev => prev ? { ...prev, paymentStatus: newStatus } : null);
+                }
+                fetchData();
+            } else {
+                const err = await res.json().catch(() => ({}));
+                Swal.fire('Error', err.error || 'Failed to update payment status.', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Network error updating payment status.', 'error');
         }
     };
 
@@ -1050,86 +1112,235 @@ const AdminPanel = () => {
                             )}
 
                             {/* ── Active Orders Tab ── */}
-                            {activeTab === 'orders' && (
-                                <div className="fade-in">
-                                    <h3 className="fw-bold mb-4" style={{ color: 'var(--primary-brown)' }}>Active Orders</h3>
-                                    <div className="row g-3 g-md-4 mb-4 mb-md-5">
-                                        <div className="col-12 col-sm-4"><StatBox title="Pending" value={pendingOrders} /></div>
-                                        <div className="col-12 col-sm-4"><StatBox title="Preparing" value={preparingOrders} /></div>
-                                        <div className="col-12 col-sm-4"><StatBox title="Completed" value={completedOrders} /></div>
-                                    </div>
+                            {activeTab === 'orders' && (() => {
+                                const pendingGcashCount = orders.filter(o => o.paymentMethod === 'GCASH' && (o.paymentStatus === 'PENDING_VERIFICATION' || !o.paymentStatus || o.paymentStatus === 'UNPAID')).length;
+                                const paidOrdersCount = orders.filter(o => o.paymentStatus === 'PAID').length;
+                                const unpaidCount = orders.filter(o => o.paymentStatus !== 'PAID' && o.paymentMethod !== 'GCASH').length;
 
-                                    <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-                                        <div className="table-responsive">
-                                            <table className="table table-hover align-middle mb-0">
-                                                <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
-                                                    <tr>
-                                                        <th className="py-3 px-4 border-0 text-center">Order ID</th>
-                                                        <th className="py-3 px-4 border-0 text-center">Customer Info</th>
-                                                        <th className="py-3 px-4 border-0 text-center">Items</th>
-                                                        <th className="py-3 px-4 border-0 text-center">Timestamp</th>
-                                                        <th className="py-3 px-4 border-0 text-center">Price</th>
-                                                        <th className="py-3 px-4 border-0 text-center">Status</th>
-                                                        <th className="py-3 px-4 border-0 text-center">Action</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {orders.map(o => (
-                                                        <tr key={o.id}>
-                                                            <td className="px-4 fw-bold text-center">#{o.id}</td>
-                                                            <td className="px-4 text-start">
-                                                                <div className="fw-bold text-dark">{o.user?.firstName} {o.user?.lastName}</div>
-                                                                <div className="small text-muted" style={{ lineHeight: '1.2' }}><i className="bi bi-telephone-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.phone || 'N/A'}</div>
-                                                                {(o.orderType === 'DINE_IN' || o.reservation) ? (
-                                                                    <div className="mt-1">
-                                                                        <span className="badge bg-warning text-dark border" style={{ fontSize: '0.72rem' }}>
-                                                                            🍽️ Dine-In Pre-Order {o.reservation?.id ? `(Res #${o.reservation.id})` : ''}
-                                                                        </span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="small text-muted text-truncate" style={{ maxWidth: '200px', lineHeight: '1.2' }} title={o.user?.address || 'N/A'}><i className="bi bi-geo-alt-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.address || 'N/A'}</div>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-4 text-center">
-                                                                <div className="bg-light p-2 rounded mx-auto text-start" style={{ fontSize: '0.8rem', width: 'max-content' }}>
-                                                                    {o.items?.map((item, idx) => (
-                                                                        <div key={idx} className="text-truncate" style={{ maxWidth: '200px' }} title={`${item.quantity}x ${item.product?.name} ${item.variant ? `(${item.variant})` : ''}`}>
-                                                                            {item.quantity}x {item.product?.name} {item.variant ? <span className="fst-italic text-primary">({item.variant})</span> : ''}
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-4 text-center">
-                                                                <div className="small">{new Date(o.orderDate || Date.now()).toLocaleString()}</div>
-                                                            </td>
-                                                            <td className="px-4 fw-bold text-center">₱{o.totalAmount?.toFixed(2)}</td>
-                                                            <td className="px-4 text-center">
-                                                                <span className={`badge rounded-pill ${o.status === 'PENDING' ? 'bg-warning text-dark' : o.status === 'COMPLETED' ? 'bg-success' : o.status === 'CANCELLED' ? 'bg-danger' : 'bg-info text-dark'}`}>
-                                                                    {o.status}
-                                                                </span>
-                                                                {o.status === 'CANCELLED' && o.cancellationReason && (
-                                                                    <div className="mt-1" style={{ fontSize: '0.72rem', color: '#d33', fontStyle: 'italic', maxWidth: '180px', margin: '4px auto 0' }}>
-                                                                        <i className="bi bi-info-circle me-1"></i>{o.cancellationReason}
-                                                                    </div>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-4 text-center">
-                                                                <select className="form-select form-select-sm d-inline-block w-auto" value={o.status} onChange={(e) => handleUpdateStatus('orders', o.id, e.target.value)}>
-                                                                    <option value="PENDING">Pending</option>
-                                                                    <option value="PREPARING">Preparing</option>
-                                                                    <option value="COMPLETED">Completed</option>
-                                                                    <option value="CANCELLED">Cancelled</option>
-                                                                </select>
-                                                            </td>
+                                const filteredOrders = orders.filter(o => {
+                                    if (orderPaymentFilter === 'GCASH_PENDING') {
+                                        return o.paymentMethod === 'GCASH' && (o.paymentStatus === 'PENDING_VERIFICATION' || !o.paymentStatus || o.paymentStatus === 'UNPAID');
+                                    }
+                                    if (orderPaymentFilter === 'PAID') {
+                                        return o.paymentStatus === 'PAID';
+                                    }
+                                    if (orderPaymentFilter === 'UNPAID') {
+                                        return o.paymentStatus !== 'PAID' && o.paymentMethod !== 'GCASH';
+                                    }
+                                    return true;
+                                });
+
+                                return (
+                                    <div className="fade-in">
+                                        <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+                                            <h3 className="fw-bold mb-0" style={{ color: 'var(--primary-brown)' }}>Active Orders</h3>
+                                            <div className="d-flex flex-wrap gap-2">
+                                                <button 
+                                                    className={`btn btn-sm fw-bold px-3 py-1.5 rounded-pill ${orderPaymentFilter === 'ALL' ? 'btn-dark' : 'btn-outline-secondary'}`}
+                                                    onClick={() => setOrderPaymentFilter('ALL')}
+                                                >
+                                                    All Orders ({orders.length})
+                                                </button>
+                                                <button 
+                                                    className={`btn btn-sm fw-bold px-3 py-1.5 rounded-pill ${orderPaymentFilter === 'GCASH_PENDING' ? 'btn-primary shadow-sm' : 'btn-outline-primary'}`}
+                                                    onClick={() => setOrderPaymentFilter('GCASH_PENDING')}
+                                                >
+                                                    <i className="bi bi-hourglass-split me-1"></i> GCash Pending ({pendingGcashCount})
+                                                </button>
+                                                <button 
+                                                    className={`btn btn-sm fw-bold px-3 py-1.5 rounded-pill ${orderPaymentFilter === 'PAID' ? 'btn-success shadow-sm' : 'btn-outline-success'}`}
+                                                    onClick={() => setOrderPaymentFilter('PAID')}
+                                                >
+                                                    <i className="bi bi-check-circle-fill me-1"></i> Paid ({paidOrdersCount})
+                                                </button>
+                                                <button 
+                                                    className={`btn btn-sm fw-bold px-3 py-1.5 rounded-pill ${orderPaymentFilter === 'UNPAID' ? 'btn-secondary shadow-sm' : 'btn-outline-secondary'}`}
+                                                    onClick={() => setOrderPaymentFilter('UNPAID')}
+                                                >
+                                                    COD / Unpaid ({unpaidCount})
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="row g-3 g-md-4 mb-4 mb-md-5">
+                                            <div className="col-12 col-sm-3"><StatBox title="Pending" value={pendingOrders} /></div>
+                                            <div className="col-12 col-sm-3"><StatBox title="Preparing" value={preparingOrders} /></div>
+                                            <div className="col-12 col-sm-3"><StatBox title="Completed" value={completedOrders} /></div>
+                                            <div className="col-12 col-sm-3">
+                                                <div className="card border-0 shadow-sm rounded-4 p-3 h-100" style={{ background: '#f0f7ff', border: '1.5px solid #b8daff' }}>
+                                                    <div className="d-flex align-items-center justify-content-between">
+                                                        <span className="small text-primary fw-bold text-uppercase">GCash Verification</span>
+                                                        <i className="bi bi-phone-fill text-primary fs-5"></i>
+                                                    </div>
+                                                    <h3 className="fw-bold mt-2 mb-0 text-primary">{pendingGcashCount}</h3>
+                                                    <div className="small text-muted" style={{ fontSize: '0.75rem' }}>Receipts awaiting review</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                                            <div className="table-responsive">
+                                                <table className="table table-hover align-middle mb-0">
+                                                    <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
+                                                        <tr>
+                                                            <th className="py-3 px-3 border-0 text-center">Order ID</th>
+                                                            <th className="py-3 px-3 border-0 text-center">Customer Info</th>
+                                                            <th className="py-3 px-3 border-0 text-center">Items</th>
+                                                            <th className="py-3 px-3 border-0 text-center">Timestamp</th>
+                                                            <th className="py-3 px-3 border-0 text-center">Total</th>
+                                                            <th className="py-3 px-3 border-0 text-center">Order Status</th>
+                                                            <th className="py-3 px-3 border-0 text-center">Payment & Proof</th>
+                                                            <th className="py-3 px-3 border-0 text-center">Action</th>
                                                         </tr>
-                                                    ))}
-                                                    {orders.length === 0 && <tr><td colSpan="7" className="text-center py-5">No active orders.</td></tr>}
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody>
+                                                        {filteredOrders.map(o => {
+                                                            const isGcash = o.paymentMethod === 'GCASH';
+                                                            const isPaid = o.paymentStatus === 'PAID';
+                                                            const isPendingVerification = isGcash && (!o.paymentStatus || o.paymentStatus === 'PENDING_VERIFICATION' || o.paymentStatus === 'UNPAID');
+
+                                                            return (
+                                                                <tr key={o.id} style={isPendingVerification ? { backgroundColor: '#fffdf6' } : {}}>
+                                                                    <td className="px-3 fw-bold text-center">#{o.id}</td>
+                                                                    <td className="px-3 text-start">
+                                                                        <div className="fw-bold text-dark">{o.user?.firstName} {o.user?.lastName}</div>
+                                                                        <div className="small text-muted" style={{ lineHeight: '1.2' }}><i className="bi bi-telephone-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.phone || 'N/A'}</div>
+                                                                        {(o.orderType === 'DINE_IN' || o.reservation) ? (
+                                                                            <div className="mt-1">
+                                                                                <span className="badge bg-warning text-dark border" style={{ fontSize: '0.72rem' }}>
+                                                                                    🍽️ Dine-In Pre-Order {o.reservation?.id ? `(Res #${o.reservation.id})` : ''}
+                                                                                </span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="small text-muted text-truncate" style={{ maxWidth: '180px', lineHeight: '1.2' }} title={o.user?.address || 'N/A'}><i className="bi bi-geo-alt-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.address || 'N/A'}</div>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="px-3 text-center">
+                                                                        <div className="bg-light p-2 rounded mx-auto text-start" style={{ fontSize: '0.8rem', width: 'max-content' }}>
+                                                                            {o.items?.map((item, idx) => (
+                                                                                <div key={idx} className="text-truncate" style={{ maxWidth: '180px' }} title={`${item.quantity}x ${item.product?.name} ${item.variant ? `(${item.variant})` : ''}`}>
+                                                                                    {item.quantity}x {item.product?.name} {item.variant ? <span className="fst-italic text-primary">({item.variant})</span> : ''}
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-3 text-center">
+                                                                        <div className="small">{new Date(o.orderDate || Date.now()).toLocaleDateString()}<br/><span className="text-muted">{new Date(o.orderDate || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
+                                                                    </td>
+                                                                    <td className="px-3 fw-bold text-center text-nowrap" style={{ color: 'var(--primary-brown)' }}>₱{o.totalAmount?.toFixed(2)}</td>
+                                                                    
+                                                                    {/* Order Status */}
+                                                                    <td className="px-3 text-center">
+                                                                        <span className={`badge rounded-pill ${o.status === 'PENDING' ? 'bg-warning text-dark' : o.status === 'COMPLETED' ? 'bg-success' : o.status === 'CANCELLED' ? 'bg-danger' : 'bg-info text-dark'}`}>
+                                                                            {o.status}
+                                                                        </span>
+                                                                        {o.status === 'CANCELLED' && o.cancellationReason && (
+                                                                            <div className="mt-1" style={{ fontSize: '0.72rem', color: '#d33', fontStyle: 'italic', maxWidth: '160px', margin: '4px auto 0' }}>
+                                                                                <i className="bi bi-info-circle me-1"></i>{o.cancellationReason}
+                                                                            </div>
+                                                                        )}
+                                                                    </td>
+
+                                                                    {/* Payment & Proof Column */}
+                                                                    <td className="px-3 text-center" style={{ minWidth: '160px' }}>
+                                                                        <div className="d-flex flex-column align-items-center gap-1">
+                                                                            <div className="d-flex align-items-center gap-1 flex-wrap justify-content-center">
+                                                                                <span className={`badge ${isGcash ? 'bg-primary' : 'bg-secondary'}`} style={{ fontSize: '0.72rem' }}>
+                                                                                    {isGcash ? 'GCash' : 'COD'}
+                                                                                </span>
+                                                                                {isPaid ? (
+                                                                                    <span className="badge bg-success rounded-pill px-2" style={{ fontSize: '0.72rem' }}>
+                                                                                        <i className="bi bi-check-circle-fill me-1"></i>PAID
+                                                                                    </span>
+                                                                                ) : isPendingVerification ? (
+                                                                                    <span className="badge bg-warning text-dark rounded-pill px-2" style={{ fontSize: '0.72rem' }}>
+                                                                                        <i className="bi bi-hourglass-split me-1"></i>Awaiting Verification
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span className="badge bg-light text-muted border rounded-pill px-2" style={{ fontSize: '0.72rem' }}>
+                                                                                        Unpaid
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+
+                                                                            {/* Receipt Proof button */}
+                                                                            {o.paymentProofImage ? (
+                                                                                <button 
+                                                                                    type="button" 
+                                                                                    className="btn btn-xs btn-outline-primary py-1 px-2 d-inline-flex align-items-center gap-1 mt-1 shadow-sm"
+                                                                                    style={{ fontSize: '0.75rem', borderRadius: '6px' }}
+                                                                                    onClick={() => setViewingOrderProof(o)}
+                                                                                >
+                                                                                    <i className="bi bi-image"></i> View Receipt
+                                                                                </button>
+                                                                            ) : isGcash ? (
+                                                                                <span className="text-muted" style={{ fontSize: '0.7rem' }}>No receipt uploaded</span>
+                                                                            ) : null}
+
+                                                                            {o.paymentReference && (
+                                                                                <div className="text-muted" style={{ fontSize: '0.7rem' }}>
+                                                                                    Ref: <span className="fw-semibold text-dark">{o.paymentReference}</span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+
+                                                                    {/* Action Column */}
+                                                                    <td className="px-3 text-center" style={{ minWidth: '150px' }}>
+                                                                        <div className="d-flex flex-column gap-1.5 align-items-center">
+                                                                            <select 
+                                                                                className="form-select form-select-sm d-inline-block w-100" 
+                                                                                style={{ fontSize: '0.8rem', borderRadius: '8px' }}
+                                                                                value={o.status} 
+                                                                                onChange={(e) => handleUpdateStatus('orders', o.id, e.target.value)}
+                                                                            >
+                                                                                <option value="PENDING">Pending</option>
+                                                                                <option value="PREPARING">Preparing</option>
+                                                                                <option value="COMPLETED">Completed</option>
+                                                                                <option value="CANCELLED">Cancelled</option>
+                                                                            </select>
+
+                                                                            {/* Quick Mark as Paid Button */}
+                                                                            {!isPaid ? (
+                                                                                <button 
+                                                                                    type="button" 
+                                                                                    className="btn btn-sm btn-success w-100 py-1 d-inline-flex align-items-center justify-content-center gap-1 fw-bold shadow-sm"
+                                                                                    style={{ fontSize: '0.78rem', borderRadius: '8px' }}
+                                                                                    onClick={() => handleUpdatePaymentStatus(o.id, 'PAID')}
+                                                                                >
+                                                                                    <i className="bi bi-check-circle-fill"></i> Mark as Paid
+                                                                                </button>
+                                                                            ) : (
+                                                                                <button 
+                                                                                    type="button" 
+                                                                                    className="btn btn-sm btn-outline-secondary w-100 py-1 d-inline-flex align-items-center justify-content-center gap-1"
+                                                                                    style={{ fontSize: '0.72rem', borderRadius: '8px' }}
+                                                                                    onClick={() => handleUpdatePaymentStatus(o.id, 'UNPAID')}
+                                                                                    title="Click to revert to Unpaid if needed"
+                                                                                >
+                                                                                    <i className="bi bi-arrow-counterclockwise"></i> Mark Unpaid
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                        {filteredOrders.length === 0 && (
+                                                            <tr>
+                                                                <td colSpan="8" className="text-center py-5 text-muted">
+                                                                    <i className="bi bi-inbox fs-2 d-block mb-2 text-muted opacity-50"></i>
+                                                                    No orders match the selected filter.
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                );
+                            })()}
 
                             {/* ── Reservations Tab ── */}
                             {activeTab === 'reservations' && (
@@ -2407,6 +2618,176 @@ const AdminPanel = () => {
                     )}
                 </div>
             </div>
+            {/* ── GCash Payment Proof Verification Modal ── */}
+            {viewingOrderProof && (
+                <div 
+                    className="modal show d-block" 
+                    tabIndex="-1" 
+                    style={{ backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1060, backdropFilter: 'blur(3px)' }}
+                    onClick={() => setViewingOrderProof(null)}
+                >
+                    <div className="modal-dialog modal-dialog-centered modal-lg" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                            <div className="modal-header py-3 px-4 d-flex justify-content-between align-items-center" style={{ backgroundColor: '#007DFE', color: '#fff' }}>
+                                <div className="d-flex align-items-center gap-2">
+                                    <i className="bi bi-shield-check fs-5"></i>
+                                    <h5 className="modal-title fw-bold mb-0">GCash Payment Verification</h5>
+                                    <span className="badge bg-white text-primary ms-2">Order #{viewingOrderProof.id}</span>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    className="btn-close btn-close-white" 
+                                    onClick={() => setViewingOrderProof(null)}
+                                    aria-label="Close"
+                                />
+                            </div>
+                            <div className="modal-body p-4 bg-light">
+                                <div className="row g-4">
+                                    {/* Left: Customer & Order Details */}
+                                    <div className="col-lg-5">
+                                        <div className="card border-0 shadow-sm rounded-4 p-3 bg-white mb-3">
+                                            <h6 className="fw-bold mb-3" style={{ color: 'var(--primary-brown)' }}>
+                                                <i className="bi bi-person-badge me-2 text-primary"></i>Customer & Order
+                                            </h6>
+                                            <div className="mb-2">
+                                                <small className="text-muted d-block">Customer Name</small>
+                                                <span className="fw-bold text-dark">{viewingOrderProof.user?.firstName} {viewingOrderProof.user?.lastName}</span>
+                                            </div>
+                                            <div className="mb-2">
+                                                <small className="text-muted d-block">Phone Number</small>
+                                                <span className="fw-semibold text-dark">{viewingOrderProof.user?.phone || 'N/A'}</span>
+                                            </div>
+                                            <div className="mb-2">
+                                                <small className="text-muted d-block">Order Date</small>
+                                                <span className="small text-muted">{new Date(viewingOrderProof.orderDate || Date.now()).toLocaleString()}</span>
+                                            </div>
+                                            <div className="mb-2">
+                                                <small className="text-muted d-block">Order Type</small>
+                                                <span className="badge bg-light text-dark border">
+                                                    {viewingOrderProof.orderType || 'DELIVERY'}
+                                                </span>
+                                            </div>
+                                            <div className="mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
+                                                <span className="fw-bold text-muted">Total Amount:</span>
+                                                <span className="fs-5 fw-bold text-success">₱{viewingOrderProof.totalAmount?.toFixed(2)}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                                            <h6 className="fw-bold mb-3 text-primary">
+                                                <i className="bi bi-wallet2 me-2"></i>Payment Details
+                                            </h6>
+                                            <div className="mb-2">
+                                                <small className="text-muted d-block">Payment Method</small>
+                                                <span className="badge bg-primary">GCash Manual Transfer</span>
+                                            </div>
+                                            {viewingOrderProof.paymentReference && (
+                                                <div className="mb-2">
+                                                    <small className="text-muted d-block">Customer GCash Reference</small>
+                                                    <span className="fw-bold font-monospace text-dark p-1 px-2 bg-light rounded border d-inline-block">
+                                                        {viewingOrderProof.paymentReference}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <div className="mb-3">
+                                                <small className="text-muted d-block">Verification Status</small>
+                                                {viewingOrderProof.paymentStatus === 'PAID' ? (
+                                                    <span className="badge bg-success rounded-pill px-3 py-1.5 fw-bold">
+                                                        <i className="bi bi-check-circle-fill me-1"></i>VERIFIED & PAID
+                                                    </span>
+                                                ) : (
+                                                    <span className="badge bg-warning text-dark rounded-pill px-3 py-1.5 fw-bold">
+                                                        <i className="bi bi-hourglass-split me-1"></i>PENDING VERIFICATION
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Action Buttons in Modal */}
+                                            <div className="d-flex flex-column gap-2 mt-3 pt-3 border-top">
+                                                {viewingOrderProof.paymentStatus !== 'PAID' ? (
+                                                    <button 
+                                                        type="button" 
+                                                        className="btn btn-success fw-bold py-2.5 shadow-sm d-flex align-items-center justify-content-center gap-2"
+                                                        style={{ borderRadius: '10px' }}
+                                                        onClick={() => handleUpdatePaymentStatus(viewingOrderProof.id, 'PAID')}
+                                                    >
+                                                        <i className="bi bi-check-circle-fill fs-5"></i>
+                                                        <span>Verify & Mark as PAID</span>
+                                                    </button>
+                                                ) : (
+                                                    <button 
+                                                        type="button" 
+                                                        className="btn btn-outline-secondary py-2 d-flex align-items-center justify-content-center gap-2"
+                                                        style={{ borderRadius: '10px' }}
+                                                        onClick={() => handleUpdatePaymentStatus(viewingOrderProof.id, 'UNPAID')}
+                                                    >
+                                                        <i className="bi bi-arrow-counterclockwise"></i>
+                                                        <span>Revert to Unpaid</span>
+                                                    </button>
+                                                )}
+                                                <button 
+                                                    type="button" 
+                                                    className="btn btn-outline-danger py-2 d-flex align-items-center justify-content-center gap-2"
+                                                    style={{ borderRadius: '10px' }}
+                                                    onClick={() => handleUpdatePaymentStatus(viewingOrderProof.id, 'REJECTED')}
+                                                >
+                                                    <i className="bi bi-x-circle"></i>
+                                                    <span>Reject Proof (Invalid)</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Right: Receipt Screenshot */}
+                                    <div className="col-lg-7">
+                                        <div className="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 text-center d-flex flex-column">
+                                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                                <span className="fw-bold small text-muted">Uploaded Receipt Screenshot</span>
+                                                {viewingOrderProof.paymentProofImage && (
+                                                    <a 
+                                                        href={viewingOrderProof.paymentProofImage.startsWith('/') ? `${API_URL}${viewingOrderProof.paymentProofImage}` : viewingOrderProof.paymentProofImage} 
+                                                        target="_blank" 
+                                                        rel="noreferrer"
+                                                        className="btn btn-xs btn-outline-primary small py-1 px-2.5"
+                                                        style={{ borderRadius: '6px', fontSize: '0.75rem' }}
+                                                    >
+                                                        <i className="bi bi-box-arrow-up-right me-1"></i> Open Original
+                                                    </a>
+                                                )}
+                                            </div>
+                                            <div className="flex-grow-1 d-flex align-items-center justify-content-center bg-light rounded-3 p-2 overflow-auto" style={{ maxHeight: '65vh' }}>
+                                                {viewingOrderProof.paymentProofImage ? (
+                                                    <img 
+                                                        src={viewingOrderProof.paymentProofImage.startsWith('/') ? `${API_URL}${viewingOrderProof.paymentProofImage}` : viewingOrderProof.paymentProofImage} 
+                                                        alt="GCash Payment Receipt" 
+                                                        className="img-fluid rounded shadow-sm"
+                                                        style={{ maxHeight: '60vh', objectFit: 'contain' }}
+                                                    />
+                                                ) : (
+                                                    <div className="text-muted p-5">
+                                                        <i className="bi bi-image fs-1 d-block mb-2 text-muted opacity-50"></i>
+                                                        No screenshot proof found for this order.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer bg-white border-0 py-2.5 px-4 d-flex justify-content-end">
+                                <button 
+                                    type="button" 
+                                    className="btn btn-secondary px-4 py-2 fw-semibold"
+                                    style={{ borderRadius: '8px' }}
+                                    onClick={() => setViewingOrderProof(null)}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     </div>
     );
